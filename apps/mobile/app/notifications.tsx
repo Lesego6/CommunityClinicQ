@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
+import { useAppStore } from "../stores/appStore";
+import type { Notification } from "../stores/appStore";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -30,92 +32,6 @@ const FILTER_TABS = ["All", "Queues", "Appointments", "Medications", "System"];
 
 type NotifType = "queue" | "appointment" | "medication" | "system" | "health";
 
-interface NotifItem {
-  id: string;
-  type: NotifType;
-  title: string;
-  body: string;
-  time: string;
-  tag?: string;
-  tagColor?: string;
-  unread?: boolean;
-}
-
-const NOTIFICATIONS: { section: string; items: NotifItem[] }[] = [
-  {
-    section: "Today",
-    items: [
-      {
-        id: "1",
-        type: "queue",
-        title: "You're 5 people away!",
-        body: "Good news! You're next in line soon at Langa Community Clinic. Please be ready.",
-        time: "09:35 AM",
-        tag: "Queue • Langa Community Clinic",
-        tagColor: Colors.primary,
-        unread: true,
-      },
-      {
-        id: "2",
-        type: "appointment",
-        title: "Appointment reminder",
-        body: "You have an appointment tomorrow at 10:00 AM at Langa Community Clinic.",
-        time: "08:15 AM",
-        tag: "Appointment",
-        tagColor: Colors.secondary,
-        unread: true,
-      },
-      {
-        id: "3",
-        type: "medication",
-        title: "Medication ready for collection",
-        body: "Your medication (Paracetamol 500mg) is ready for collection at Gugulettu Clinic Pharmacy.",
-        time: "07:45 AM",
-        tag: "Medication",
-        tagColor: Colors.teal,
-        unread: true,
-      },
-    ],
-  },
-  {
-    section: "Yesterday",
-    items: [
-      {
-        id: "4",
-        type: "queue",
-        title: "You have joined the queue",
-        body: "You have successfully joined the queue at Nyanga Day Clinic. Your number is B012.",
-        time: "Yesterday, 02:30 PM",
-        tag: "Queue • Nyanga Day Clinic",
-        tagColor: Colors.primary,
-      },
-      {
-        id: "5",
-        type: "system",
-        title: "Clinic update",
-        body: "Walk-in services may be slower than usual today at Delft Community Clinic due to high patient volume.",
-        time: "Yesterday, 11:20 AM",
-        tag: "System",
-        tagColor: Colors.muted,
-      },
-    ],
-  },
-  {
-    section: "This week",
-    items: [
-      {
-        id: "6",
-        type: "health",
-        title: "Health tip of the week",
-        body: "Drink plenty of water, eat healthy and get enough rest. Small steps lead to a healthier you!",
-        time: "Mon, 12 May, 09:00 AM",
-        tag: "Health Tip",
-        tagColor: Colors.danger,
-      },
-    ],
-  },
-];
-
 const NOTIF_ICONS: Record<NotifType, { bg: string; emoji: string }> = {
   queue: { bg: Colors.primaryLight, emoji: "👥" },
   appointment: { bg: Colors.yellowLight, emoji: "📅" },
@@ -124,10 +40,20 @@ const NOTIF_ICONS: Record<NotifType, { bg: string; emoji: string }> = {
   health: { bg: Colors.redLight, emoji: "🏥" },
 };
 
-function NotifCard({ item }: { item: NotifItem }) {
-  const iconConfig = NOTIF_ICONS[item.type];
+// Map filter tab label → store notification type
+const TAB_TYPE_MAP: Record<string, NotifType | null> = {
+  All: null,
+  Queues: "queue",
+  Appointments: "appointment",
+  Medications: "medication",
+  System: "system",
+};
+
+function NotifCard({ item, onPress }: { item: Notification; onPress: () => void }) {
+  const iconConfig = NOTIF_ICONS[item.type] ?? NOTIF_ICONS.system;
   return (
     <TouchableOpacity
+      onPress={onPress}
       activeOpacity={0.85}
       style={{
         flexDirection: "row",
@@ -139,7 +65,7 @@ function NotifCard({ item }: { item: NotifItem }) {
     >
       {/* Unread dot */}
       <View style={{ width: 8, justifyContent: "center", alignItems: "center" }}>
-        {item.unread && (
+        {!item.read && (
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary }} />
         )}
       </View>
@@ -195,6 +121,27 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("All");
 
+  const notifications = useAppStore((s) => s.notifications);
+  const markAsRead = useAppStore((s) => s.markAsRead);
+  const markAllRead = useAppStore((s) => s.markAllRead);
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Filter by tab
+  const typeFilter = TAB_TYPE_MAP[activeFilter];
+  const filtered = typeFilter
+    ? notifications.filter((n) => n.type === typeFilter)
+    : notifications;
+
+  // Group into Today / Earlier (store has no date objects, so we split on
+  // whether the time string starts with a time-of-day pattern vs a day name)
+  const todayItems = filtered.filter((n) => /^\d{2}:\d{2}/.test(n.time));
+  const earlierItems = filtered.filter((n) => !/^\d{2}:\d{2}/.test(n.time));
+
+  const groups = [
+    ...(todayItems.length ? [{ section: "Today", items: todayItems }] : []),
+    ...(earlierItems.length ? [{ section: "Earlier", items: earlierItems }] : []),
+  ];
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
       {/* Header */}
@@ -211,9 +158,16 @@ export default function NotificationsScreen() {
         }}
       >
         <ClinicQLogo size={28} />
-        <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Notifications</Text>
-        <TouchableOpacity>
-          <SettingsIcon size={22} />
+        <View style={{ alignItems: "center" }}>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Notifications</Text>
+          {unreadCount > 0 && (
+            <Text style={{ fontSize: 11, color: Colors.muted }}>{unreadCount} unread</Text>
+          )}
+        </View>
+        <TouchableOpacity onPress={markAllRead} accessibilityLabel="Mark all notifications as read">
+          <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>
+            {unreadCount > 0 ? "Mark all read" : "All read"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -298,36 +252,56 @@ export default function NotificationsScreen() {
             }}
           >
             <Text style={{ fontSize: 28 }}>📱</Text>
-            <View style={{ position: "absolute", top: -4, right: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: Colors.secondary, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontSize: 10, fontWeight: "700", color: Colors.white }}>1</Text>
-            </View>
+            {unreadCount > 0 && (
+              <View style={{ position: "absolute", top: -4, right: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: Colors.secondary, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 10, fontWeight: "700", color: Colors.white }}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+              </View>
+            )}
           </View>
         </View>
 
         {/* ── Notification Groups ── */}
-        {NOTIFICATIONS.map((group) => (
-          <View key={group.section} style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: Colors.muted, marginBottom: 4 }}>
-              {group.section}
+        {groups.length === 0 ? (
+          <View style={{ alignItems: "center", marginTop: 48, paddingHorizontal: 40 }}>
+            <Text style={{ fontSize: 32, marginBottom: 12 }}>🔔</Text>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: Colors.dark, textAlign: "center" }}>
+              No notifications
             </Text>
-            <View
-              style={{
-                backgroundColor: Colors.white,
-                borderRadius: 16,
-                paddingHorizontal: 16,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.06,
-                shadowRadius: 8,
-                elevation: 2,
-              }}
-            >
-              {group.items.map((item) => (
-                <NotifCard key={item.id} item={item} />
-              ))}
-            </View>
+            <Text style={{ fontSize: 13, color: Colors.muted, textAlign: "center", marginTop: 6 }}>
+              {activeFilter === "All"
+                ? "You're all caught up!"
+                : `No ${activeFilter.toLowerCase()} notifications yet.`}
+            </Text>
           </View>
-        ))}
+        ) : (
+          groups.map((group) => (
+            <View key={group.section} style={{ paddingHorizontal: 20, marginTop: 20 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: Colors.muted, marginBottom: 4 }}>
+                {group.section}
+              </Text>
+              <View
+                style={{
+                  backgroundColor: Colors.white,
+                  borderRadius: 16,
+                  paddingHorizontal: 16,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 8,
+                  elevation: 2,
+                }}
+              >
+                {group.items.map((item) => (
+                  <NotifCard
+                    key={item.id}
+                    item={item}
+                    onPress={() => markAsRead(item.id)}
+                  />
+                ))}
+              </View>
+            </View>
+          ))
+        )}
 
         {/* ── Settings Banner ── */}
         <View

@@ -1,15 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
+import { useAppStore } from "../stores/appStore";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -95,6 +97,7 @@ interface Reminder {
   badgeBg: string;
   icon: string;
   iconBg: string;
+  enabled?: boolean;
 }
 
 const UPCOMING_REMINDERS: Reminder[] = [
@@ -168,7 +171,7 @@ const COMPLETED_REMINDERS: Reminder[] = [
   },
 ];
 
-function ReminderCard({ item, completed = false }: { item: Reminder; completed?: boolean }) {
+function ReminderCard({ item, completed = false, onDotsPress }: { item: Reminder; completed?: boolean; onDotsPress?: () => void }) {
   return (
     <View
       style={{
@@ -254,7 +257,7 @@ function ReminderCard({ item, completed = false }: { item: Reminder; completed?:
           >
             <Text style={{ fontSize: 12, fontWeight: "700", color: item.badgeColor }}>{item.badge}</Text>
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={onDotsPress}>
             <DotsIcon size={18} color={Colors.muted} />
           </TouchableOpacity>
         </View>
@@ -268,6 +271,86 @@ function ReminderCard({ item, completed = false }: { item: Reminder; completed?:
 export default function RemindersScreen() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("all");
+
+  const medicationReminders = useAppStore((s) => s.medicationReminders);
+  const toggleReminder = useAppStore((s) => s.toggleReminder);
+  const deleteReminder = useAppStore((s) => s.deleteReminder);
+  const appointments = useAppStore((s) => s.appointments);
+
+  // Build unified reminder list from store
+  const allReminders = useMemo(() => {
+    const medItems: Reminder[] = medicationReminders.map((r) => ({
+      id: r.id,
+      type: "medication" as ReminderType,
+      typeLabel: "Medication",
+      title: r.name,
+      subtitle: `${r.dosage} • ${r.frequency}`,
+      time: r.nextDue,
+      badge: r.enabled ? "Active" : "Paused",
+      badgeColor: r.enabled ? Colors.secondary : Colors.muted,
+      badgeBg: r.enabled ? Colors.secondaryLight : Colors.surface,
+      icon: "💊",
+      iconBg: r.enabled ? Colors.secondaryLight : Colors.surface,
+      enabled: r.enabled,
+    }));
+
+    const apptItems: Reminder[] = appointments
+      .filter((a) => a.status === "upcoming")
+      .map((a) => ({
+        id: a.id,
+        type: "appointment" as ReminderType,
+        typeLabel: "Appointment",
+        title: a.clinicName,
+        subtitle: a.service,
+        time: `${a.date} • ${a.time}`,
+        badge: "Upcoming",
+        badgeColor: Colors.primary,
+        badgeBg: Colors.primaryLight,
+        icon: "📅",
+        iconBg: Colors.primaryLight,
+        enabled: true,
+      }));
+
+    return [...medItems, ...apptItems];
+  }, [medicationReminders, appointments]);
+
+  const activeReminders = allReminders.filter((r) => r.enabled !== false);
+  const pausedReminders = allReminders.filter((r) => r.enabled === false);
+
+  const filterReminders = (items: Reminder[]) => {
+    if (activeFilter === "all") return items;
+    if (activeFilter === "medications") return items.filter((r) => r.type === "medication");
+    if (activeFilter === "appointments") return items.filter((r) => r.type === "appointment");
+    if (activeFilter === "health") return items.filter((r) => r.type === "health");
+    return items;
+  };
+
+  const handleDotsPress = (item: Reminder) => {
+    if (item.type !== "medication") return;
+    Alert.alert(
+      item.title,
+      "What would you like to do?",
+      [
+        {
+          text: item.enabled ? "Pause reminder" : "Enable reminder",
+          onPress: () => toggleReminder(item.id),
+        },
+        {
+          text: "Delete reminder",
+          style: "destructive",
+          onPress: () =>
+            Alert.alert("Delete reminder?", `Remove "${item.title}"?`, [
+              { text: "Cancel", style: "cancel" },
+              { text: "Delete", style: "destructive", onPress: () => deleteReminder(item.id) },
+            ]),
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
+  const visibleActive = filterReminders(activeReminders);
+  const visiblePaused = filterReminders(pausedReminders);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -373,30 +456,41 @@ export default function RemindersScreen() {
         {/* ── Upcoming Reminders ── */}
         <View style={{ paddingHorizontal: 20 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Upcoming reminders</Text>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>
+              Active reminders {visibleActive.length > 0 && `(${visibleActive.length})`}
+            </Text>
             <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View all</Text>
               <ChevronRightIcon size={14} color={Colors.primary} />
             </TouchableOpacity>
           </View>
-          {UPCOMING_REMINDERS.map((item) => (
-            <ReminderCard key={item.id} item={item} />
-          ))}
+          {visibleActive.length === 0 ? (
+            <View style={{ backgroundColor: Colors.white, borderRadius: 16, padding: 24, alignItems: "center" }}>
+              <Text style={{ fontSize: 28, marginBottom: 8 }}>🔔</Text>
+              <Text style={{ fontSize: 14, color: Colors.muted, textAlign: "center" }}>No active reminders.</Text>
+            </View>
+          ) : (
+            visibleActive.map((item) => (
+              <ReminderCard key={item.id} item={item} onDotsPress={() => handleDotsPress(item)} />
+            ))
+          )}
         </View>
 
-        {/* ── Completed Reminders ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Completed reminders</Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View history</Text>
-              <ChevronRightIcon size={14} color={Colors.primary} />
-            </TouchableOpacity>
+        {/* ── Paused / Disabled Reminders ── */}
+        {visiblePaused.length > 0 && (
+          <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Paused reminders</Text>
+              <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View history</Text>
+                <ChevronRightIcon size={14} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+            {visiblePaused.map((item) => (
+              <ReminderCard key={item.id} item={item} completed onDotsPress={() => handleDotsPress(item)} />
+            ))}
           </View>
-          {COMPLETED_REMINDERS.map((item) => (
-            <ReminderCard key={item.id} item={item} completed />
-          ))}
-        </View>
+        )}
 
         {/* ── Enable Alerts Banner ── */}
         <View

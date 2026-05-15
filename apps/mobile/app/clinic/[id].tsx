@@ -5,12 +5,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Svg, { Path, Circle, Rect, G } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { ClinicQLogo } from "../../components/ui/ClinicQLogo";
+import { CLINICS, CLINIC_IMAGES } from "../../constants/clinics";
+import { useAppStore } from "../../stores/appStore";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -122,18 +125,49 @@ function RatingBar({ stars, percent }: { stars: number; percent: number }) {
 
 export default function ClinicDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("Overview");
 
+  // Look up real clinic data; fall back to first clinic if id is unknown
+  const clinic = CLINICS.find((c) => c.id === id) ?? CLINICS[0];
+  const heroPhoto = CLINIC_IMAGES[clinic.imageIndex % CLINIC_IMAGES.length];
+
+  const activeTicket = useAppStore((s) => s.activeTicket);
+  const leaveQueue = useAppStore((s) => s.leaveQueue);
+
+  // Only show "Leave Queue" if the user is actually in a queue at THIS clinic
+  const isInThisQueue =
+    activeTicket &&
+    activeTicket.clinicId === clinic.id &&
+    activeTicket.status !== "cancelled" &&
+    activeTicket.status !== "done";
+
+  const handleLeaveQueue = () => {
+    Alert.alert(
+      "Leave Queue?",
+      "Are you sure you want to leave the queue? You will lose your spot.",
+      [
+        { text: "Stay in queue", style: "cancel" },
+        { text: "Leave queue", style: "destructive", onPress: () => leaveQueue() },
+      ]
+    );
+  };
+
   const CLINIC_PHOTOS = [
-    "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=200&q=80",
+    heroPhoto,
     "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=200&q=80",
     "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=200&q=80",
     "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=200&q=80",
     "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=200&q=80",
   ];
-
   const PHOTO_LABELS = ["Exterior", "Waiting Area", "Consultation Room", "Pharmacy", "Immunization"];
+
+  const trafficColor =
+    clinic.trafficLevel === "busy"
+      ? Colors.busy
+      : clinic.trafficLevel === "moderate"
+      ? Colors.moderate
+      : Colors.low;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -177,16 +211,16 @@ export default function ClinicDetailScreen() {
         <View style={{ backgroundColor: Colors.white, padding: 20 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.dark }}>Langa Community Clinic</Text>
+              <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.dark }}>{clinic.name}</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
                 <StarIcon size={14} />
-                <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.dark }}>4.6</Text>
-                <Text style={{ fontSize: 13, color: Colors.muted }}>(128 reviews)</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.dark }}>{clinic.rating}</Text>
+                <Text style={{ fontSize: 13, color: Colors.muted }}>({clinic.reviews} reviews)</Text>
               </View>
               <Text style={{ fontSize: 13, color: Colors.muted, marginTop: 2 }}>Primary Health Care Clinic</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
                 <LocationIcon size={13} color={Colors.muted} />
-                <Text style={{ fontSize: 12, color: Colors.muted }}>1.2 km away • Washington St, Langa, Cape Town</Text>
+                <Text style={{ fontSize: 12, color: Colors.muted }}>{clinic.distance} away • {clinic.area}</Text>
               </View>
             </View>
             <View style={{ backgroundColor: Colors.primaryLight, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 }}>
@@ -197,6 +231,7 @@ export default function ClinicDetailScreen() {
           {/* Action buttons */}
           <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
             <TouchableOpacity
+              onPress={() => router.push(`/clinic/directions` as any)}
               style={{
                 flex: 2,
                 backgroundColor: Colors.primary,
@@ -237,19 +272,42 @@ export default function ClinicDetailScreen() {
             >
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.dark }}>🌐 Website</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                backgroundColor: Colors.surface,
-                borderRadius: 12,
-                paddingVertical: 12,
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: Colors.border,
-              }}
-            >
-              <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.dark }}>🔖 Saved</Text>
-            </TouchableOpacity>
+            {isInThisQueue ? (
+              <TouchableOpacity
+                onPress={handleLeaveQueue}
+                style={{
+                  flex: 1,
+                  backgroundColor: Colors.redLight,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: Colors.danger + "30",
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.danger }}>Leave</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/queue/checkin",
+                    params: { clinicId: clinic.id, clinicName: clinic.name },
+                  } as any)
+                }
+                style={{
+                  flex: 1,
+                  backgroundColor: Colors.primaryLight,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: Colors.primary + "30",
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.primary }}>Join</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Status row */}
@@ -269,21 +327,23 @@ export default function ClinicDetailScreen() {
             </View>
             <View style={{ width: 1, backgroundColor: Colors.border }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 11, color: Colors.muted }}>Current Queue</Text>
+              <Text style={{ fontSize: 11, color: Colors.muted }}>Est. Wait</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <PeopleIcon color={Colors.primary} size={14} />
-                <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.dark }}>24 people</Text>
+                <PeopleIcon color={trafficColor} size={14} />
+                <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.dark }}>{clinic.waitTime}</Text>
               </View>
-              <Text style={{ fontSize: 11, color: Colors.muted }}>Est. wait 35–45 min</Text>
+              <Text style={{ fontSize: 11, color: Colors.muted }}>{clinic.trafficLabel}</Text>
             </View>
             <View style={{ width: 1, backgroundColor: Colors.border }} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 11, color: Colors.muted }}>Live Status</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success }} />
-                <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.success }}>Normal</Text>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: trafficColor }} />
+                <Text style={{ fontSize: 12, fontWeight: "600", color: trafficColor }}>
+                  {clinic.trafficLevel === "busy" ? "Busy" : clinic.trafficLevel === "moderate" ? "Normal" : "Quiet"}
+                </Text>
               </View>
-              <Text style={{ fontSize: 11, color: Colors.muted }}>Not too busy</Text>
+              <Text style={{ fontSize: 11, color: Colors.muted }}>{clinic.services[0]}</Text>
             </View>
           </View>
         </View>
@@ -324,15 +384,7 @@ export default function ClinicDetailScreen() {
                 <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.dark }}>Services Offered</Text>
                 <TouchableOpacity><Text style={{ fontSize: 12, color: Colors.primary }}>View all</Text></TouchableOpacity>
               </View>
-              {[
-                "General Consultations",
-                "Chronic Disease Management",
-                "Maternal & Child Health",
-                "Immunization",
-                "Family Planning",
-                "HIV Testing & Counselling",
-                "TB Screening & Treatment",
-              ].map((s) => (
+              {clinic.services.map((s) => (
                 <View key={s} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
                   <CheckIcon size={14} color={Colors.success} />
                   <Text style={{ fontSize: 12, color: Colors.dark }}>{s}</Text>
@@ -397,30 +449,47 @@ export default function ClinicDetailScreen() {
             >
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <Text style={{ fontSize: 13, fontWeight: "700", color: Colors.dark }}>Current Queue</Text>
-                <TouchableOpacity><Text style={{ fontSize: 11, color: Colors.primary }}>View full queue</Text></TouchableOpacity>
+                {isInThisQueue && (
+                  <TouchableOpacity onPress={() => router.push("/queue/ticket")}>
+                    <Text style={{ fontSize: 11, color: Colors.primary }}>View ticket</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <View style={{ alignItems: "center", marginBottom: 8 }}>
-                <Text style={{ fontSize: 11, color: Colors.muted }}>Your Queue Number</Text>
-                <Text style={{ fontSize: 36, fontWeight: "900", color: Colors.primary }}>A023</Text>
-                <Text style={{ fontSize: 11, color: Colors.muted }}>You are 5 people away</Text>
-                <Text style={{ fontSize: 11, color: Colors.muted }}>Est. wait time: 35–45 min</Text>
-              </View>
-              {/* Progress bar */}
-              <View style={{ height: 6, backgroundColor: Colors.border, borderRadius: 3, marginBottom: 8 }}>
-                <View style={{ height: 6, backgroundColor: Colors.primary, borderRadius: 3, width: "60%" }} />
-              </View>
-              <Text style={{ fontSize: 10, color: Colors.muted, textAlign: "center" }}>We'll notify you when it's almost your turn.</Text>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.redLight,
-                  borderRadius: 10,
-                  paddingVertical: 8,
-                  alignItems: "center",
-                  marginTop: 8,
-                }}
-              >
-                <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.danger }}>Leave Queue</Text>
-              </TouchableOpacity>
+              {isInThisQueue ? (
+                <View style={{ alignItems: "center", marginBottom: 8 }}>
+                  <Text style={{ fontSize: 11, color: Colors.muted }}>Your Queue Number</Text>
+                  <Text style={{ fontSize: 36, fontWeight: "900", color: Colors.primary }}>{activeTicket!.queueNumber}</Text>
+                  <Text style={{ fontSize: 11, color: Colors.muted }}>{activeTicket!.peopleAhead} people ahead</Text>
+                  <Text style={{ fontSize: 11, color: Colors.muted }}>Est. wait: {activeTicket!.estimatedWait}</Text>
+                  <View style={{ height: 6, backgroundColor: Colors.border, borderRadius: 3, marginTop: 8, marginBottom: 4, width: "100%" }}>
+                    <View style={{ height: 6, backgroundColor: Colors.primary, borderRadius: 3, width: "60%" }} />
+                  </View>
+                  <Text style={{ fontSize: 10, color: Colors.muted, textAlign: "center" }}>We'll notify you when it's almost your turn.</Text>
+                  <TouchableOpacity
+                    onPress={handleLeaveQueue}
+                    style={{ backgroundColor: Colors.redLight, borderRadius: 10, paddingVertical: 8, alignItems: "center", marginTop: 8, width: "100%" }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.danger }}>Leave Queue</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ alignItems: "center", gap: 8 }}>
+                  <Text style={{ fontSize: 13, color: Colors.muted, textAlign: "center" }}>
+                    Est. wait: {clinic.waitTime}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: "/queue/checkin",
+                        params: { clinicId: clinic.id, clinicName: clinic.name },
+                      } as any)
+                    }
+                    style={{ backgroundColor: Colors.primary, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20, alignItems: "center" }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: Colors.white }}>Join Queue</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
 
             {/* Medication Stock */}
@@ -523,13 +592,13 @@ export default function ClinicDetailScreen() {
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <View style={{ alignItems: "center" }}>
-                  <Text style={{ fontSize: 32, fontWeight: "900", color: Colors.dark }}>4.6</Text>
+                  <Text style={{ fontSize: 32, fontWeight: "900", color: Colors.dark }}>{clinic.rating}</Text>
                   <View style={{ flexDirection: "row", gap: 2 }}>
                     {[1, 2, 3, 4, 5].map((s) => (
-                      <StarIcon key={s} size={12} color={s <= 4 ? Colors.yellow : Colors.border} />
+                      <StarIcon key={s} size={12} color={s <= Math.round(clinic.rating) ? Colors.yellow : Colors.border} />
                     ))}
                   </View>
-                  <Text style={{ fontSize: 10, color: Colors.muted }}>(128 reviews)</Text>
+                  <Text style={{ fontSize: 10, color: Colors.muted }}>({clinic.reviews} reviews)</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <RatingBar stars={5} percent={78} />

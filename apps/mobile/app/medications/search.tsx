@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { ClinicQLogo } from "../../components/ui/ClinicQLogo";
+import { CLINIC_IMAGES, MEDICATION_NEARBY_RESULTS } from "../../constants/clinics";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -280,9 +281,22 @@ function MedCard({ item }: { item: typeof MEDICATIONS[0] }) {
 
 export default function MedicationsSearchScreen() {
   const router = useRouter();
+  const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(true);
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [activeLanguage, setActiveLanguage] = useState("All Languages");
+
+  // Filter the static medication list by search query
+  const filteredMedications = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return MEDICATIONS;
+    return MEDICATIONS.filter(
+      (m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.category.toLowerCase().includes(q) ||
+        m.generic.toLowerCase().includes(q)
+    );
+  }, [search]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -325,13 +339,19 @@ export default function MedicationsSearchScreen() {
         >
           <SearchIcon size={18} color={Colors.muted} />
           <TextInput
+            value={search}
+            onChangeText={setSearch}
             placeholder="Search medication name, condition or brand..."
             placeholderTextColor={Colors.muted}
             style={{ flex: 1, fontSize: 14, color: Colors.dark }}
+            autoCapitalize="none"
+            returnKeyType="search"
           />
-          <TouchableOpacity>
-            <XIcon size={18} color={Colors.muted} />
-          </TouchableOpacity>
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <XIcon size={18} color={Colors.muted} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── Filters ── */}
@@ -478,13 +498,24 @@ export default function MedicationsSearchScreen() {
         >
           <Text style={{ color: Colors.white, fontSize: 15, fontWeight: "700" }}>Apply Filters</Text>
         </TouchableOpacity>
-        <Text style={{ textAlign: "center", fontSize: 12, color: Colors.muted, marginTop: 8 }}>124 medications found</Text>
+        <Text style={{ textAlign: "center", fontSize: 12, color: Colors.muted, marginTop: 8 }}>
+          {filteredMedications.length} medication{filteredMedications.length !== 1 ? "s" : ""} found
+        </Text>
 
         {/* ── Results ── */}
         <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-          {MEDICATIONS.map((item) => (
-            <MedCard key={item.id} item={item} />
-          ))}
+          {filteredMedications.length === 0 ? (
+            <View style={{ alignItems: "center", paddingVertical: 32 }}>
+              <Text style={{ fontSize: 28, marginBottom: 8 }}>💊</Text>
+              <Text style={{ fontSize: 14, color: Colors.muted, textAlign: "center" }}>
+                No medications match "{search}"
+              </Text>
+            </View>
+          ) : (
+            filteredMedications.map((item) => (
+              <MedCard key={item.id} item={item} />
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

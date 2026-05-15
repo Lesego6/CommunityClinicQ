@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -30,6 +31,7 @@ import {
   StarIcon,
 } from "../../components/ui/Icons";
 import { useAppStore } from "../../stores/appStore";
+import { useAuthStore } from "../../stores/authStore";
 import { getGreeting } from "../../utils/ui";
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -161,11 +163,31 @@ export default function ProfileScreen() {
   const unreadCount = useAppStore((s) => s.notifications.filter((n) => !n.read).length);
   const appointments = useAppStore((s) => s.appointments);
   const medicationReminders = useAppStore((s) => s.medicationReminders);
+  const updateUser = useAppStore((s) => s.updateUser);
+  const logout = useAuthStore((s) => s.logout);
 
   const firstName = user.name.split(" ")[0];
   const greeting = getGreeting();
   const upcomingAppt = appointments.find((a) => a.status === "upcoming");
   const activeReminders = medicationReminders.filter((r) => r.enabled);
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Log out",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Log out",
+          style: "destructive",
+          onPress: () => {
+            logout();
+            router.replace("/auth/phone");
+          },
+        },
+      ]
+    );
+  };
 
   const iconBox = (bg: string, icon: React.ReactNode) => (
     <View style={[styles.quickActionIconBox, { backgroundColor: bg }]}>{icon}</View>
@@ -395,6 +417,7 @@ export default function ProfileScreen() {
               color={Colors.danger}
               label={"Log Out"}
               accessibilityLabel="Log out of the app"
+              onPress={handleLogout}
               icon={iconBox(Colors.danger, <LogoutIcon color={Colors.white} size={18} />)}
             />
           </View>

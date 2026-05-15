@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
+import { CLINICS, CLINIC_IMAGES } from "../constants/clinics";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -185,57 +186,15 @@ function RadioChip({ label, active, onPress }: { label: string; active?: boolean
 
 // ─── Clinic Result Card ───────────────────────────────────────────────────────
 
-const CLINIC_IMAGES = [
-  "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=120&q=80",
-  "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=120&q=80",
-  "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=120&q=80",
-];
+// CLINIC_IMAGES and CLINICS are imported from constants/clinics
 
-const RESULTS = [
-  {
-    id: "langa",
-    name: "Langa Community Clinic",
-    distance: "1.2 km away",
-    area: "Langa, Cape Town",
-    tags: ["General Services", "Chronic Care", "Pharmacy", "+2"],
-    rating: 4.6,
-    reviews: 128,
-    waitTime: "35–45 min",
-    trafficLevel: "busy" as const,
-    imageIndex: 0,
-  },
-  {
-    id: "gugulethu",
-    name: "Guguletu Clinic",
-    distance: "2.4 km away",
-    area: "Gugulethu, Cape Town",
-    tags: ["General Services", "Maternal Care", "Pharmacy", "+1"],
-    rating: 4.4,
-    reviews: 96,
-    waitTime: "15–20 min",
-    trafficLevel: "moderate" as const,
-    imageIndex: 1,
-  },
-  {
-    id: "nyanga",
-    name: "Nyanga Day Clinic",
-    distance: "3.1 km away",
-    area: "Nyanga, Cape Town",
-    tags: ["Child Health", "TB Care", "Pharmacy", "+1"],
-    rating: 4.5,
-    reviews: 74,
-    waitTime: "5–10 min",
-    trafficLevel: "low" as const,
-    imageIndex: 2,
-  },
-];
-
-function ResultCard({ item }: { item: typeof RESULTS[0] }) {
+function ResultCard({ item, onPress }: { item: typeof CLINICS[0]; onPress: () => void }) {
   const trafficColor = item.trafficLevel === "busy" ? Colors.busy : item.trafficLevel === "moderate" ? Colors.moderate : Colors.low;
   const waitBg = item.trafficLevel === "busy" ? "#FFF3E0" : item.trafficLevel === "moderate" ? "#FFFDE7" : Colors.primaryLight;
 
   return (
     <TouchableOpacity
+      onPress={onPress}
       activeOpacity={0.85}
       style={{
         backgroundColor: Colors.white,
@@ -256,7 +215,7 @@ function ResultCard({ item }: { item: typeof RESULTS[0] }) {
 
       <View style={{ flexDirection: "row", padding: 12, gap: 12 }}>
         <Image
-          source={{ uri: CLINIC_IMAGES[item.imageIndex] }}
+          source={{ uri: CLINIC_IMAGES[item.imageIndex % CLINIC_IMAGES.length] }}
           style={{ width: 80, height: 80, borderRadius: 12 }}
           resizeMode="cover"
         />
@@ -281,7 +240,7 @@ function ResultCard({ item }: { item: typeof RESULTS[0] }) {
             <Text style={{ fontSize: 11, color: Colors.muted }}>{item.distance} • {item.area}</Text>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
-            {item.tags.map((tag) => (
+            {item.services.map((tag) => (
               <View key={tag} style={{ backgroundColor: Colors.surface, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: Colors.border }}>
                 <Text style={{ fontSize: 10, color: Colors.muted }}>{tag}</Text>
               </View>
@@ -308,8 +267,7 @@ function ResultCard({ item }: { item: typeof RESULTS[0] }) {
 
 export default function SearchScreen() {
   const router = useRouter();
-  const [showFilters, setShowFilters] = useState(true);
-  const [activeService, setActiveService] = useState("All Services");
+  const [showFilters, setShowFilters] = useState(true);  const [activeService, setActiveService] = useState("All Services");
   const [activeFacility, setActiveFacility] = useState("Pharmacy");
   const [activeLanguage, setActiveLanguage] = useState("All Languages");
   const [activeRating, setActiveRating] = useState("Any rating");
@@ -556,7 +514,11 @@ export default function SearchScreen() {
             </TouchableOpacity>
           </View>
           {RESULTS.map((item) => (
-            <ResultCard key={item.id} item={item} />
+            <ResultCard
+              key={item.id}
+              item={item}
+              onPress={() => router.push(`/clinic/${item.id}` as any)}
+            />
           ))}
         </View>
       </ScrollView>

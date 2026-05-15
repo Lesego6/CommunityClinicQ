@@ -5,12 +5,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
+import { useAppStore } from "../stores/appStore";
+import { CLINICS } from "../constants/clinics";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -200,11 +203,54 @@ const TIME_SLOTS = [
 
 export default function AppointmentBookingScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ clinicId?: string; clinicName?: string }>();
+  const addAppointment = useAppStore((s) => s.addAppointment);
+
+  // Allow pre-selecting a clinic via route params (e.g. from clinic detail screen)
+  const defaultClinicId = params.clinicId ?? "langa-community";
+  const defaultClinicName =
+    params.clinicName ??
+    CLINICS.find((c) => c.id === defaultClinicId)?.name ??
+    "Langa Community Clinic";
+
+  const [selectedClinicId] = useState(defaultClinicId);
+  const [selectedClinicName] = useState(defaultClinicName);
   const [selectedService, setSelectedService] = useState("general");
   const [selectedDate, setSelectedDate] = useState(0);
   const [selectedTime, setSelectedTime] = useState("09:00 AM");
   const [smsReminder, setSmsReminder] = useState(true);
   const [pushNotif, setPushNotif] = useState(true);
+
+  const selectedServiceLabel =
+    SERVICES.find((s) => s.id === selectedService)?.label ?? "General Consultation";
+  const selectedServiceDuration =
+    SERVICES.find((s) => s.id === selectedService)?.duration ?? "15 min";
+  const selectedDateLabel = DATES[selectedDate];
+
+  const handleConfirm = () => {
+    const appt = addAppointment({
+      clinicId: selectedClinicId,
+      clinicName: selectedClinicName,
+      service: selectedServiceLabel,
+      date: `${selectedDateLabel.day.replace(/\n/g, " ")}, ${selectedDateLabel.date} 2026`,
+      time: selectedTime,
+      duration: selectedServiceDuration,
+      status: "upcoming",
+      doctor: "Dr. N. Dlamini",
+    });
+
+    Alert.alert(
+      "Appointment confirmed! 🎉",
+      `${selectedServiceLabel} at ${selectedClinicName}\n${selectedDateLabel.date} • ${selectedTime}`,
+      [
+        {
+          text: "View appointments",
+          onPress: () => router.replace("/(tabs)/appointments" as any),
+        },
+        { text: "Done", onPress: () => router.back() },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -387,20 +433,22 @@ export default function AppointmentBookingScreen() {
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Reschedule</Text>
             </TouchableOpacity>
           </View>
-          <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.dark }}>Langa Community Clinic</Text>
-          <Text style={{ fontSize: 13, color: Colors.muted, marginBottom: 10 }}>General Consultation</Text>
+          <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.dark }}>{selectedClinicName}</Text>
+          <Text style={{ fontSize: 13, color: Colors.muted, marginBottom: 10 }}>{selectedServiceLabel}</Text>
           <View style={{ gap: 6 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <CalendarIcon size={14} color={Colors.muted} />
-              <Text style={{ fontSize: 13, color: Colors.muted }}>Fri, 24 May 2024</Text>
+              <Text style={{ fontSize: 13, color: Colors.muted }}>
+                {selectedDateLabel.day.replace(/\n/g, " ")}, {selectedDateLabel.date} 2026
+              </Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <ClockIcon size={14} color={Colors.muted} />
-              <Text style={{ fontSize: 13, color: Colors.muted }}>09:00 AM</Text>
+              <Text style={{ fontSize: 13, color: Colors.muted }}>{selectedTime}</Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <HourglassIcon size={14} color={Colors.muted} />
-              <Text style={{ fontSize: 13, color: Colors.muted }}>15 min</Text>
+              <Text style={{ fontSize: 13, color: Colors.muted }}>{selectedServiceDuration}</Text>
             </View>
           </View>
         </View>
@@ -506,6 +554,7 @@ export default function AppointmentBookingScreen() {
 
         {/* ── Confirm Button ── */}
         <TouchableOpacity
+          onPress={handleConfirm}
           style={{
             backgroundColor: Colors.primary,
             borderRadius: 16,

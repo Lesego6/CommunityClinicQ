@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useLocation } from "../../hooks/useLocation";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { ClinicQLogo } from "../../components/ui/ClinicQLogo";
@@ -32,19 +33,29 @@ import { getBottomPadding } from "../../utils/ui";
 /**
  * A placeholder map using real pixel values derived from screen width.
  * Replace with react-native-maps when integrating a real map provider.
+ * Marker wait times are derived from the first 4 entries in CLINICS.
  */
 function MockMap() {
   const { width } = useWindowDimensions();
   const mapWidth = width - 40; // 20px padding each side
   const mapHeight = 180;
 
-  // Marker positions as fractions of map dimensions → real pixel values
-  const markers = [
-    { xFrac: 0.25, yFrac: 0.45, num: 8 },
-    { xFrac: 0.55, yFrac: 0.30, num: 8 },
-    { xFrac: 0.75, yFrac: 0.60, num: 4 },
-    { xFrac: 0.40, yFrac: 0.70, num: 0 },
+  // Use real wait-time labels from CLINICS (first 4 entries)
+  const markerPositions = [
+    { xFrac: 0.25, yFrac: 0.45 },
+    { xFrac: 0.55, yFrac: 0.30 },
+    { xFrac: 0.75, yFrac: 0.60 },
+    { xFrac: 0.40, yFrac: 0.70 },
   ];
+
+  // Extract a short numeric label from the waitTime string, e.g. "35–45 min" → "35"
+  const markers = markerPositions.map((pos, i) => {
+    const clinic = CLINICS[i];
+    const shortWait = clinic
+      ? clinic.waitTime.replace(/\s*min.*/, "").split("–")[0].trim()
+      : "?";
+    return { ...pos, label: shortWait };
+  });
 
   const MARKER_SIZE = 32;
   const DOT_SIZE = 20;
@@ -94,9 +105,9 @@ function MockMap() {
             key={i}
             style={[styles.mapMarker, { left, top, width: MARKER_SIZE, height: MARKER_SIZE, borderRadius: MARKER_SIZE / 2 }]}
             accessibilityRole="button"
-            accessibilityLabel={`Clinic marker showing ${m.num} minute wait`}
+            accessibilityLabel={`Clinic marker showing ${m.label} minute wait`}
           >
-            <Text style={styles.mapMarkerText}>{m.num}</Text>
+            <Text style={styles.mapMarkerText}>{m.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -266,6 +277,7 @@ export default function NearbyScreen() {
   const router = useRouter();
   const unreadCount = useAppStore((s) => s.notifications.filter((n) => !n.read).length);
   const [search, setSearch] = useState("");
+  const { coords, status, refresh: refreshLocation } = useLocation();
 
   const filteredClinics = search.trim()
     ? CLINICS.filter(
@@ -329,12 +341,12 @@ export default function NearbyScreen() {
             style={styles.locationBtn}
             accessibilityRole="button"
             accessibilityLabel="Use my current location"
-            onPress={() => {
-              // TODO: wire up expo-location
-            }}
+            onPress={refreshLocation}
           >
             <LocationIcon size={14} color={Colors.primary} />
-            <Text style={styles.locationBtnText}>Use my location</Text>
+            <Text style={styles.locationBtnText}>
+              {status === "requesting" ? "Locating…" : "Use my location"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -344,14 +356,19 @@ export default function NearbyScreen() {
             <LocationIcon size={14} color={Colors.primary} />
             <View>
               <Text style={styles.locationBannerSub}>Showing clinics near</Text>
-              <Text style={styles.locationBannerCity}>Langa, Cape Town</Text>
+              <Text style={styles.locationBannerCity}>
+                {coords
+                  ? `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`
+                  : "Langa, Cape Town"}
+              </Text>
             </View>
           </View>
           <TouchableOpacity
+            onPress={refreshLocation}
             accessibilityRole="button"
-            accessibilityLabel="Change location"
+            accessibilityLabel="Refresh location"
           >
-            <Text style={styles.changeText}>Change</Text>
+            <Text style={styles.changeText}>{coords ? "Refresh" : "Change"}</Text>
           </TouchableOpacity>
         </View>
 
