@@ -1,75 +1,22 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+import type { UserProfile, EmergencyContact, Notification } from "../types/user";
+import type { QueueTicket, Appointment } from "../types/queue";
+import type { MedicationReminder } from "../types/medication";
 
-export interface UserProfile {
-  name: string;
-  phone: string;
-  email: string;
-  location: string;
-  language: string;
-  bloodType: string;
-  memberSince: string;
-  avatar?: string;
-}
-
-export interface QueueTicket {
-  id: string;
-  clinicId: string;
-  clinicName: string;
-  clinicAddress: string;
-  queueNumber: string;
-  serviceType: string;
-  joinedAt: string;
-  estimatedWait: string;
-  peopleAhead: number;
-  status: "waiting" | "almost" | "serving" | "done" | "cancelled";
-  qrValue: string;
-}
-
-export interface Appointment {
-  id: string;
-  clinicId: string;
-  clinicName: string;
-  service: string;
-  date: string;
-  time: string;
-  duration: string;
-  status: "upcoming" | "completed" | "cancelled";
-  doctor?: string;
-}
-
-export interface MedicationReminder {
-  id: string;
-  name: string;
-  dosage: string;
-  frequency: string;
-  time: string;
-  enabled: boolean;
-  nextDue: string;
-}
-
-export interface Notification {
-  id: string;
-  type: "queue" | "appointment" | "medication" | "system" | "health";
-  title: string;
-  body: string;
-  time: string;
-  read: boolean;
-  tag?: string;
-  tagColor?: string;
-}
-
-export interface EmergencyContact {
-  id: string;
-  name: string;
-  relationship: string;
-  phone: string;
-}
+// Re-export types so existing imports from this file keep working
+export type { UserProfile, EmergencyContact, Notification } from "../types/user";
+export type { QueueTicket, Appointment } from "../types/queue";
+export type { MedicationReminder } from "../types/medication";
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 interface AppState {
+  /** True once AsyncStorage rehydration has finished. Gate all routing on this. */
+  _hasHydrated: boolean;
+  _setHasHydrated: (v: boolean) => void;
   // User
   user: UserProfile;
   updateUser: (updates: Partial<UserProfile>) => void;
@@ -240,113 +187,140 @@ const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
 let idCounter = 1000;
 const genId = () => `id-${++idCounter}`;
 
-export const useAppStore = create<AppState>((set, get) => ({
-  // User
-  user: {
-    name: "Sibongile Mthembu",
-    phone: "+27 82 123 4567",
-    email: "sibongile.m@example.com",
-    location: "Cape Town, Western Cape",
-    language: "English",
-    bloodType: "O+",
-    memberSince: "May 2024",
-    avatar: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=120&q=80",
-  },
-  updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      // Hydration flag
+      _hasHydrated: false,
+      _setHasHydrated: (v) => set({ _hasHydrated: v }),
 
-  // Queue
-  activeTicket: null,
-  queueHistory: [],
-  joinQueue: (ticketData) => {
-    const ticket: QueueTicket = {
-      ...ticketData,
-      id: genId(),
-      status: "waiting",
-      qrValue: `CLINICQ-${ticketData.queueNumber}-${ticketData.clinicId.toUpperCase()}-${genId()}`,
-    };
-    set({ activeTicket: ticket });
-    return ticket;
-  },
-  leaveQueue: () =>
-    set((s) => ({
+      // User
+      user: {
+        name: "Sibongile Mthembu",
+        phone: "+27 82 123 4567",
+        email: "sibongile.m@example.com",
+        location: "Cape Town, Western Cape",
+        language: "English",
+        bloodType: "O+",
+        memberSince: "May 2024",
+        avatar: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=120&q=80",
+      },
+      updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
+
+      // Queue
       activeTicket: null,
-      queueHistory: s.activeTicket
-        ? [{ ...s.activeTicket, status: "cancelled" }, ...s.queueHistory]
-        : s.queueHistory,
-    })),
-  updateTicketStatus: (status) =>
-    set((s) => ({
-      activeTicket: s.activeTicket ? { ...s.activeTicket, status } : null,
-    })),
+      queueHistory: [],
+      joinQueue: (ticketData) => {
+        const ticket: QueueTicket = {
+          ...ticketData,
+          id: genId(),
+          status: "waiting",
+          qrValue: `CLINICQ-${ticketData.queueNumber}-${ticketData.clinicId.toUpperCase()}-${genId()}`,
+        };
+        set({ activeTicket: ticket });
+        return ticket;
+      },
+      leaveQueue: () =>
+        set((s) => ({
+          activeTicket: null,
+          queueHistory: s.activeTicket
+            ? [{ ...s.activeTicket, status: "cancelled" }, ...s.queueHistory]
+            : s.queueHistory,
+        })),
+      updateTicketStatus: (status) =>
+        set((s) => ({
+          activeTicket: s.activeTicket ? { ...s.activeTicket, status } : null,
+        })),
 
-  // Appointments
-  appointments: INITIAL_APPOINTMENTS,
-  addAppointment: (apptData) => {
-    const appt: Appointment = { ...apptData, id: genId() };
-    set((s) => ({ appointments: [appt, ...s.appointments] }));
-    return appt;
-  },
-  cancelAppointment: (id) =>
-    set((s) => ({
-      appointments: s.appointments.map((a) =>
-        a.id === id ? { ...a, status: "cancelled" } : a
-      ),
-    })),
+      // Appointments
+      appointments: INITIAL_APPOINTMENTS,
+      addAppointment: (apptData) => {
+        const appt: Appointment = { ...apptData, id: genId() };
+        set((s) => ({ appointments: [appt, ...s.appointments] }));
+        return appt;
+      },
+      cancelAppointment: (id) =>
+        set((s) => ({
+          appointments: s.appointments.map((a) =>
+            a.id === id ? { ...a, status: "cancelled" } : a
+          ),
+        })),
 
-  // Medications
-  medicationReminders: INITIAL_REMINDERS,
-  toggleReminder: (id) =>
-    set((s) => ({
-      medicationReminders: s.medicationReminders.map((r) =>
-        r.id === id ? { ...r, enabled: !r.enabled } : r
-      ),
-    })),
-  addReminder: (reminderData) =>
-    set((s) => ({
-      medicationReminders: [
-        { ...reminderData, id: genId() },
-        ...s.medicationReminders,
-      ],
-    })),
-  deleteReminder: (id) =>
-    set((s) => ({
-      medicationReminders: s.medicationReminders.filter((r) => r.id !== id),
-    })),
+      // Medications
+      medicationReminders: INITIAL_REMINDERS,
+      toggleReminder: (id) =>
+        set((s) => ({
+          medicationReminders: s.medicationReminders.map((r) =>
+            r.id === id ? { ...r, enabled: !r.enabled } : r
+          ),
+        })),
+      addReminder: (reminderData) =>
+        set((s) => ({
+          medicationReminders: [
+            { ...reminderData, id: genId() },
+            ...s.medicationReminders,
+          ],
+        })),
+      deleteReminder: (id) =>
+        set((s) => ({
+          medicationReminders: s.medicationReminders.filter((r) => r.id !== id),
+        })),
 
-  // Notifications
-  notifications: INITIAL_NOTIFICATIONS,
-  markAsRead: (id) =>
-    set((s) => ({
-      notifications: s.notifications.map((n) =>
-        n.id === id ? { ...n, read: true } : n
-      ),
-    })),
-  markAllRead: () =>
-    set((s) => ({
-      notifications: s.notifications.map((n) => ({ ...n, read: true })),
-    })),
-  clearAll: () => set({ notifications: [] }),
-  addNotification: (notifData) =>
-    set((s) => ({
-      notifications: [{ ...notifData, id: genId(), read: false }, ...s.notifications],
-    })),
+      // Notifications
+      notifications: INITIAL_NOTIFICATIONS,
+      markAsRead: (id) =>
+        set((s) => ({
+          notifications: s.notifications.map((n) =>
+            n.id === id ? { ...n, read: true } : n
+          ),
+        })),
+      markAllRead: () =>
+        set((s) => ({
+          notifications: s.notifications.map((n) => ({ ...n, read: true })),
+        })),
+      clearAll: () => set({ notifications: [] }),
+      addNotification: (notifData) =>
+        set((s) => ({
+          notifications: [{ ...notifData, id: genId(), read: false }, ...s.notifications],
+        })),
 
-  // Emergency contacts
-  emergencyContacts: INITIAL_EMERGENCY_CONTACTS,
-  addEmergencyContact: (contactData) =>
-    set((s) => ({
-      emergencyContacts: [...s.emergencyContacts, { ...contactData, id: genId() }],
-    })),
-  removeEmergencyContact: (id) =>
-    set((s) => ({
-      emergencyContacts: s.emergencyContacts.filter((c) => c.id !== id),
-    })),
+      // Emergency contacts
+      emergencyContacts: INITIAL_EMERGENCY_CONTACTS,
+      addEmergencyContact: (contactData) =>
+        set((s) => ({
+          emergencyContacts: [...s.emergencyContacts, { ...contactData, id: genId() }],
+        })),
+      removeEmergencyContact: (id) =>
+        set((s) => ({
+          emergencyContacts: s.emergencyContacts.filter((c) => c.id !== id),
+        })),
 
-  // Selected clinic
-  selectedClinicId: null,
-  setSelectedClinic: (id) => set({ selectedClinicId: id }),
+      // Selected clinic
+      selectedClinicId: null,
+      setSelectedClinic: (id) => set({ selectedClinicId: id }),
 
-  // Onboarding
-  onboardingComplete: true,
-  completeOnboarding: () => set({ onboardingComplete: true }),
-}));
+      // Onboarding — false so new installs go through the flow
+      onboardingComplete: false,
+      completeOnboarding: () => set({ onboardingComplete: true }),
+    }),
+    {
+      name: "app-store",
+      storage: createJSONStorage(() => AsyncStorage),
+      // Only persist user-generated state; skip seed data that's always available
+      partialize: (s) => ({
+        user: s.user,
+        activeTicket: s.activeTicket,
+        queueHistory: s.queueHistory,
+        appointments: s.appointments,
+        medicationReminders: s.medicationReminders,
+        notifications: s.notifications,
+        emergencyContacts: s.emergencyContacts,
+        selectedClinicId: s.selectedClinicId,
+        onboardingComplete: s.onboardingComplete,
+      }),
+      onRehydrateStorage: () => (state) => {
+        state?._setHasHydrated(true);
+      },
+    }
+  )
+);

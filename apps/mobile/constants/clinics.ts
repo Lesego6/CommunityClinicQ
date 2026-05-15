@@ -3,29 +3,17 @@
  * Replace with a real API call when the backend is ready.
  */
 
+import type { Clinic, MedicationClinicResult, TrafficLevel } from "../types/clinic";
+
+// Re-export so existing imports from this file keep working
+export type { Clinic, MedicationClinicResult, TrafficLevel } from "../types/clinic";
+
 export const CLINIC_IMAGES = [
   "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=120&q=80",
   "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=120&q=80",
   "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=120&q=80",
   "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=120&q=80",
 ];
-
-export type TrafficLevel = "busy" | "moderate" | "low";
-
-export interface Clinic {
-  id: string;
-  num: number;
-  name: string;
-  area: string;
-  distance: string;
-  waitTime: string;
-  trafficLevel: TrafficLevel;
-  trafficLabel: string;
-  services: string[];
-  rating: number;
-  reviews: number;
-  imageIndex: number;
-}
 
 export const CLINICS: Clinic[] = [
   {
@@ -85,18 +73,6 @@ export const CLINICS: Clinic[] = [
     imageIndex: 3,
   },
 ];
-
-export interface MedicationClinicResult {
-  clinicId: string;
-  clinicName: string;
-  area: string;
-  distance: string;
-  medName: string;
-  form: string;
-  status: "in-stock" | "low-stock" | "out-of-stock";
-  detail: string;
-  imageIndex: number;
-}
 
 export const MEDICATION_NEARBY_RESULTS: MedicationClinicResult[] = [
   {

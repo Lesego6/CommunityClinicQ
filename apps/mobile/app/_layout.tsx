@@ -27,6 +27,8 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding/welcome" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/tutorial" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/permissions" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/phone" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/otp" options={{ headerShown: false }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

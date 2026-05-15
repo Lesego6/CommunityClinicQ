@@ -1,0 +1,122 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "search": "Search",
+    "noResults": "No results found"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to CommunityClinicQ",
+      "subtitle": "Skip the queue. Find clinics. Manage your health.",
+      "getStarted": "Get started"
+    },
+    "tutorial": {
+      "step1Title": "Find nearby clinics",
+      "step1Body": "See real-time wait times and services at clinics near you.",
+      "step2Title": "Join the queue remotely",
+      "step2Body": "Reserve your spot before you leave home.",
+      "step3Title": "Track your medications",
+      "step3Body": "Set reminders and check stock availability."
+    },
+    "permissions": {
+      "title": "Allow location access",
+      "body": "We use your location to show nearby clinics and accurate distances.",
+      "allow": "Allow location",
+      "skip": "Skip for now"
+    }
+  },
+  "tabs": {
+    "home": "Home",
+    "nearby": "Nearby",
+    "queue": "Queue",
+    "medications": "Medications",
+    "profile": "Profile"
+  },
+  "home": {
+    "greeting": "Good morning,",
+    "queueCard": {
+      "title": "Your queue ticket",
+      "peopleAhead": "{{count}} people ahead",
+      "estimatedWait": "Est. wait: {{time}}",
+      "viewTicket": "View ticket"
+    },
+    "quickActions": {
+      "joinQueue": "Join queue",
+      "findClinic": "Find clinic",
+      "medications": "Medications",
+      "emergency": "Emergency"
+    }
+  },
+  "nearby": {
+    "title": "Nearby Clinics",
+    "searchPlaceholder": "Search clinics…",
+    "waitTime": "Wait: {{time}}",
+    "distance": "{{value}} away",
+    "trafficLevels": {
+      "busy": "High traffic",
+      "moderate": "Normal traffic",
+      "low": "Light traffic"
+    }
+  },
+  "queue": {
+    "title": "My Queue",
+    "noActiveTicket": "You are not in any queue",
+    "joinPrompt": "Find a clinic and join the queue to get started.",
+    "ticket": {
+      "number": "Ticket #{{number}}",
+      "status": {
+        "waiting": "Waiting",
+        "almost": "Almost your turn",
+        "serving": "Now serving",
+        "done": "Done",
+        "cancelled": "Cancelled"
+      },
+      "leaveQueue": "Leave queue",
+      "shareTicket": "Share ticket"
+    }
+  },
+  "medications": {
+    "title": "Medications",
+    "reminders": "Reminders",
+    "searchStock": "Check stock",
+    "addReminder": "Add reminder",
+    "noReminders": "No reminders set",
+    "stockStatus": {
+      "inStock": "In stock",
+      "lowStock": "Low stock",
+      "outOfStock": "Out of stock"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit profile",
+    "healthRecords": "Health records",
+    "emergencyContacts": "Emergency contacts",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "language": "Language",
+    "logout": "Log out"
+  },
+  "clinic": {
+    "services": "Services",
+    "reviews": "Reviews",
+    "directions": "Get directions",
+    "joinQueue": "Join queue",
+    "openNow": "Open now",
+    "closed": "Closed"
+  },
+  "errors": {
+    "locationDenied": "Location access was denied. Enable it in Settings to see nearby clinics.",
+    "networkError": "No internet connection. Please check your network.",
+    "sessionExpired": "Your session has expired. Please log in again."
+  }
+}

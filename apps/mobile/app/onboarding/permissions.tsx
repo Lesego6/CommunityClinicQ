@@ -65,12 +65,12 @@ export default function PermissionsScreen() {
       return;
     }
     completeOnboarding();
-    router.replace("/(tabs)/home");
+    router.replace("/auth/phone");
   };
 
   const handleSkip = () => {
     completeOnboarding();
-    router.replace("/(tabs)/home");
+    router.replace("/auth/phone");
   };
 
   return (

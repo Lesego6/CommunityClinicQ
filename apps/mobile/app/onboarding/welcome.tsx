@@ -64,7 +64,7 @@ export default function WelcomeScreen() {
 
   const skip = () => {
     completeOnboarding();
-    router.replace("/(tabs)/home");
+    router.replace("/auth/phone");
   };
 
   const slide = SLIDES[currentSlide];
