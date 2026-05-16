@@ -187,7 +187,7 @@ function EmptyQueueState() {
         <Text style={styles.emptyJoinBtnText}>Join a Queue</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => router.push("/(tabs)/nearby")}
+        onPress={() => router.push("/nearby")}
         accessibilityRole="link"
         accessibilityLabel="Find nearby clinics"
       >

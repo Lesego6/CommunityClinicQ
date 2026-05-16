@@ -245,7 +245,7 @@ export default function AppointmentBookingScreen() {
       [
         {
           text: "View appointments",
-          onPress: () => router.replace("/(tabs)/profile"),
+          onPress: () => router.replace("/profile"),
         },
         { text: "Done", onPress: () => router.back() },
       ]

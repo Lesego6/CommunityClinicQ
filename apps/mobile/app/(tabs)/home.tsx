@@ -299,7 +299,7 @@ export default function HomeScreen() {
             bgColor={Colors.primary}
             label="Nearby Clinics"
             accessibilityLabel="Find nearby clinics"
-            onPress={() => router.push("/(tabs)/nearby")}
+            onPress={() => router.push("/nearby")}
             icon={
               <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
                 <Path
@@ -314,7 +314,7 @@ export default function HomeScreen() {
             bgColor={Colors.secondary}
             label="My Queue"
             accessibilityLabel="View my queue"
-            onPress={() => router.push("/(tabs)/queue")}
+            onPress={() => router.push("/queue")}
             icon={
               <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
                 <Circle cx={9} cy={7} r={3} fill="white" />
@@ -338,7 +338,7 @@ export default function HomeScreen() {
             bgColor={Colors.teal}
             label="Medications"
             accessibilityLabel="Check medication availability"
-            onPress={() => router.push("/(tabs)/medications")}
+            onPress={() => router.push("/medications")}
             icon={
               <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
                 <Rect x={3} y={8} width={18} height={13} rx={2} fill="white" />
@@ -366,7 +366,7 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Nearby Clinics</Text>
             <TouchableOpacity
-              onPress={() => router.push("/(tabs)/nearby")}
+              onPress={() => router.push("/nearby")}
               style={styles.viewAllBtn}
               accessibilityRole="link"
               accessibilityLabel="View all nearby clinics"
@@ -400,7 +400,7 @@ export default function HomeScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push("/(tabs)/nearby")}
+            onPress={() => router.push("/nearby")}
             style={styles.communityBtn}
             accessibilityRole="button"
             accessibilityLabel="See how to join a queue remotely"

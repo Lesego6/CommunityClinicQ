@@ -39,7 +39,7 @@
     ],
     "scheme": "clinicq",
     "experiments": {
-      "typedRoutes" : true
+      "typedRoutes": false
     }
   }
 }

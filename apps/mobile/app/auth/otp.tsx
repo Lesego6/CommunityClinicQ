@@ -86,7 +86,7 @@ export default function OtpScreen() {
       if (enteredCode === DEMO_OTP) {
         login();
         completeOnboarding();
-        router.replace("/(tabs)/home");
+        router.replace("/home");
       } else {
         setError("Incorrect code. Try 1234.");
         setDigits(Array(OTP_LENGTH).fill(""));

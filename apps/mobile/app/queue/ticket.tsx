@@ -232,7 +232,7 @@ function EmptyTicket() {
       >
         <Text style={{ color: Colors.white, fontSize: 15, fontWeight: "700" }}>Join a Queue</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push("/(tabs)/nearby")}>
+      <TouchableOpacity onPress={() => router.push("/nearby")}>
         <Text style={{ fontSize: 14, color: Colors.primary, fontWeight: "600" }}>Find nearby clinics</Text>
       </TouchableOpacity>
     </View>
@@ -259,7 +259,7 @@ export default function QueueTicketScreen() {
           style: "destructive",
           onPress: () => {
             leaveQueue();
-            router.replace("/(tabs)/queue");
+            router.replace("/queue");
           },
         },
       ]
