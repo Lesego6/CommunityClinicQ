@@ -338,6 +338,20 @@ export const useAppStore = create<AppState>()(
             : [...s.favouriteClinicIds, id],
         })),
 
+      // Admin demo queue
+      adminQueuePatients: INITIAL_ADMIN_QUEUE,
+      callNextAdminPatient: () =>
+        set((s) => {
+          const waitingIndex = s.adminQueuePatients.findIndex((p) => p.status === "waiting");
+          if (waitingIndex < 0) return s;
+          return {
+            adminQueuePatients: s.adminQueuePatients.map((patient, index) =>
+              index === waitingIndex ? { ...patient, status: "called" } : patient
+            ),
+          };
+        }),
+      resetAdminQueue: () => set({ adminQueuePatients: INITIAL_ADMIN_QUEUE }),
+
       // Onboarding — false so new installs go through the flow
       onboardingComplete: false,
       completeOnboarding: () => set({ onboardingComplete: true }),
@@ -356,6 +370,7 @@ export const useAppStore = create<AppState>()(
         emergencyContacts: s.emergencyContacts,
         selectedClinicId: s.selectedClinicId,
         favouriteClinicIds: s.favouriteClinicIds,
+        adminQueuePatients: s.adminQueuePatients,
         onboardingComplete: s.onboardingComplete,
       }),
       onRehydrateStorage: () => (state) => {
