@@ -11,6 +11,15 @@ export type { UserProfile, EmergencyContact, Notification } from "../types/user"
 export type { QueueTicket, Appointment } from "../types/queue";
 export type { MedicationReminder } from "../types/medication";
 
+export type AdminQueuePatient = {
+  id: string;
+  name: string;
+  queueNumber: string;
+  service: string;
+  wait: string;
+  status: "waiting" | "called" | "checked-in";
+};
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 interface AppState {
@@ -54,6 +63,13 @@ interface AppState {
   // Selected clinic
   selectedClinicId: string | null;
   setSelectedClinic: (id: string | null) => void;
+  favouriteClinicIds: string[];
+  toggleFavouriteClinic: (id: string) => void;
+
+  // Admin demo queue
+  adminQueuePatients: AdminQueuePatient[];
+  callNextAdminPatient: () => void;
+  resetAdminQueue: () => void;
 
   // Onboarding
   onboardingComplete: boolean;
@@ -184,6 +200,17 @@ const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
   { id: "ec-2", name: "Thabo Mthembu", relationship: "Brother", phone: "+27 73 234 5678" },
 ];
 
+const INITIAL_ADMIN_QUEUE: AdminQueuePatient[] = [
+  { id: "aq-1", name: "Thandi Mokoena", queueNumber: "A018", service: "General Consultation", wait: "12 min", status: "waiting" },
+  { id: "aq-2", name: "Piet Ndlovu", queueNumber: "A019", service: "Chronic Care", wait: "16 min", status: "waiting" },
+  { id: "aq-3", name: "Zanele Ngcobo", queueNumber: "A020", service: "Immunization", wait: "21 min", status: "waiting" },
+  { id: "aq-4", name: "Jabu Dlamini", queueNumber: "A021", service: "General Consultation", wait: "28 min", status: "waiting" },
+  { id: "aq-5", name: "Amina Jacobs", queueNumber: "A022", service: "Maternal & Child Health", wait: "33 min", status: "waiting" },
+  { id: "aq-6", name: "Sipho Khumalo", queueNumber: "A023", service: "General Consultation", wait: "35-45 min", status: "waiting" },
+  { id: "aq-7", name: "Lerato Adams", queueNumber: "A024", service: "Family Planning", wait: "45 min", status: "waiting" },
+  { id: "aq-8", name: "Nandi Molefe", queueNumber: "A025", service: "Minor Treatment", wait: "52 min", status: "waiting" },
+];
+
 let idCounter = 1000;
 const genId = () => `id-${Date.now()}-${++idCounter}`;
 
@@ -211,8 +238,13 @@ export const useAppStore = create<AppState>()(
       activeTicket: null,
       queueHistory: [],
       joinQueue: (ticketData) => {
+        const peopleAhead =
+          Number.isFinite(ticketData.peopleAhead) && ticketData.peopleAhead > 0
+            ? ticketData.peopleAhead
+            : 8;
         const ticket: QueueTicket = {
           ...ticketData,
+          peopleAhead,
           id: genId(),
           status: "waiting",
           qrValue: `CLINICQ-${ticketData.queueNumber}-${ticketData.clinicId.toUpperCase()}-${genId()}`,
@@ -298,6 +330,13 @@ export const useAppStore = create<AppState>()(
       // Selected clinic
       selectedClinicId: null,
       setSelectedClinic: (id) => set({ selectedClinicId: id }),
+      favouriteClinicIds: [],
+      toggleFavouriteClinic: (id) =>
+        set((s) => ({
+          favouriteClinicIds: s.favouriteClinicIds.includes(id)
+            ? s.favouriteClinicIds.filter((clinicId) => clinicId !== id)
+            : [...s.favouriteClinicIds, id],
+        })),
 
       // Onboarding — false so new installs go through the flow
       onboardingComplete: false,
@@ -316,6 +355,7 @@ export const useAppStore = create<AppState>()(
         notifications: s.notifications,
         emergencyContacts: s.emergencyContacts,
         selectedClinicId: s.selectedClinicId,
+        favouriteClinicIds: s.favouriteClinicIds,
         onboardingComplete: s.onboardingComplete,
       }),
       onRehydrateStorage: () => (state) => {

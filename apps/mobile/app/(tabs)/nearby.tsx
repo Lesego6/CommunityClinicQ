@@ -37,7 +37,9 @@ import { getBottomPadding, navigateWithBlur } from "../../utils/ui";
  * Marker wait times are derived from the first 4 entries in CLINICS.
  */
 function MockMap() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   const mapWidth = width - 40; // 20px padding each side
   const mapHeight = 180;
 
@@ -104,15 +106,10 @@ function MockMap() {
         return (
           <TouchableOpacity
             key={i}
-            onPress={() =>
-              Alert.alert(
-                CLINICS[i]?.name ?? "Clinic marker",
-                `Estimated wait: ${CLINICS[i]?.waitTime ?? `${m.label} min`}`
-              )
-            }
+            onPress={() => CLINICS[i] && navigate(`/clinic/${CLINICS[i].id}`)}
             style={[styles.mapMarker, { left, top, width: MARKER_SIZE, height: MARKER_SIZE, borderRadius: MARKER_SIZE / 2 }]}
             accessibilityRole="button"
-            accessibilityLabel={`Clinic marker showing ${m.label} minute wait`}
+            accessibilityLabel={`Open ${CLINICS[i]?.name ?? "clinic"} details`}
           >
             <Text style={styles.mapMarkerText}>{m.label}</Text>
           </TouchableOpacity>

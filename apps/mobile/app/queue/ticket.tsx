@@ -97,6 +97,12 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
+function formatPeopleAhead(count: number) {
+  if (count <= 0) return "You're next";
+  if (count === 1) return "1 person away";
+  return `${count} people away`;
+}
+
 function CheckInModal({ visible, onClose, clinicName, queueNumber, serviceType, estimatedWait, peopleAhead }: {
   visible: boolean;
   onClose: () => void;
@@ -188,7 +194,7 @@ function CheckInModal({ visible, onClose, clinicName, queueNumber, serviceType, 
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
                     <Text style={{ fontSize: 12, color: Colors.white + "CC" }}>You are</Text>
-                    <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.white }}>{peopleAhead} people away</Text>
+                    <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.white }}>{formatPeopleAhead(peopleAhead)}</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -234,7 +240,7 @@ function EmptyTicket() {
       >
         <Text style={{ color: Colors.white, fontSize: 15, fontWeight: "700" }}>Join a Queue</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigate("/nearby")}>
+      <TouchableOpacity onPress={() => navigate("/(tabs)/nearby")}>
         <Text style={{ fontSize: 14, color: Colors.primary, fontWeight: "600" }}>Find nearby clinics</Text>
       </TouchableOpacity>
     </View>
@@ -249,6 +255,24 @@ export default function QueueTicketScreen() {
   const leaveQueue = useAppStore((s) => s.leaveQueue);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [qrKey, setQrKey] = useState(0);
+  const [livePeopleAhead, setLivePeopleAhead] = useState(activeTicket?.peopleAhead ?? 0);
+
+  useEffect(() => {
+    if (!activeTicket || activeTicket.status === "cancelled" || activeTicket.status === "done") {
+      setLivePeopleAhead(0);
+      return;
+    }
+
+    setLivePeopleAhead(activeTicket.peopleAhead);
+    if (activeTicket.peopleAhead <= 0) return;
+
+    const intervalMs = 30000 + Math.floor(Math.random() * 30001);
+    const intervalId = setInterval(() => {
+      setLivePeopleAhead((current) => Math.max(0, current - 1));
+    }, intervalMs);
+
+    return () => clearInterval(intervalId);
+  }, [activeTicket?.id, activeTicket?.peopleAhead, activeTicket?.status]);
 
   const handleLeaveQueue = () => {
     Alert.alert(
@@ -261,7 +285,7 @@ export default function QueueTicketScreen() {
           style: "destructive",
           onPress: () => {
             leaveQueue();
-            router.replace("/queue");
+            router.replace("/(tabs)/queue");
           },
         },
       ]
@@ -358,7 +382,7 @@ export default function QueueTicketScreen() {
               <PeopleIcon color={Colors.primary} size={16} />
               <View>
                 <Text style={{ fontSize: 10, color: Colors.muted }}>You are</Text>
-                <Text style={{ fontSize: 16, fontWeight: "800", color: Colors.dark }}>{activeTicket.peopleAhead} people away</Text>
+                <Text style={{ fontSize: 16, fontWeight: "800", color: Colors.dark }}>{formatPeopleAhead(livePeopleAhead)}</Text>
               </View>
             </View>
             <View style={{ flex: 1, backgroundColor: Colors.surface, borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -448,7 +472,7 @@ export default function QueueTicketScreen() {
         queueNumber={activeTicket.queueNumber}
         serviceType={activeTicket.serviceType}
         estimatedWait={activeTicket.estimatedWait}
-        peopleAhead={activeTicket.peopleAhead}
+        peopleAhead={livePeopleAhead}
       />
     </SafeAreaView>
   );

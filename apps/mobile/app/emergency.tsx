@@ -8,6 +8,8 @@ import {
   Linking,
   Alert,
   StyleSheet,
+  Platform,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -15,6 +17,7 @@ import Svg, { Path, Circle, Rect, G } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
 import { getBottomPadding } from "../utils/ui";
+import { CLINICS, CLINIC_IMAGES, type Clinic } from "../constants/clinics";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -116,61 +119,25 @@ function QuickCallCard({
 
 // ─── Emergency Clinic Card ────────────────────────────────────────────────────
 
-const CLINIC_IMAGES = [
-  "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=120&q=80",
-  "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=120&q=80",
-  "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=120&q=80",
-];
+type EmergencyClinic = Clinic & {
+  emergencyType: string;
+  emergencyHours: string;
+  emergencyArrival: string;
+};
 
-const EMERGENCY_CLINICS = [
-  {
-    num: 1,
-    name: "Langa Community Clinic",
-    type: "Emergency Services",
-    distance: "1.2 km away",
-    area: "Langa, Cape Town",
-    hours: "Open 24/7",
-    wait: "Low wait",
-    waitLevel: "low" as const,
-    arrival: "5 min",
-    imageIndex: 0,
-  },
-  {
-    num: 2,
-    name: "Gugulethu Hospital",
-    type: "Emergency Services",
-    distance: "2.4 km away",
-    area: "Gugulethu, Cape Town",
-    hours: "Open 24/7",
-    wait: "Moderate wait",
-    waitLevel: "moderate" as const,
-    arrival: "8 min",
-    imageIndex: 1,
-  },
-  {
-    num: 3,
-    name: "Nyanga Day Hospital",
-    type: "Emergency Services",
-    distance: "3.1 km away",
-    area: "Nyanga, Cape Town",
-    hours: "Open 24/7",
-    wait: "Low wait",
-    waitLevel: "low" as const,
-    arrival: "10 min",
-    imageIndex: 2,
-  },
-];
+const EMERGENCY_CLINICS: EmergencyClinic[] = CLINICS.slice(0, 3).map((clinic, index) => ({
+  ...clinic,
+  emergencyType: "Emergency Services",
+  emergencyHours: "Open 24/7",
+  emergencyArrival: index === 0 ? "5 min" : index === 1 ? "8 min" : "10 min",
+}));
 
-function EmergencyClinicCard({ clinic }: { clinic: typeof EMERGENCY_CLINICS[0] }) {
-  const waitColor = clinic.waitLevel === "low" ? Colors.low : clinic.waitLevel === "moderate" ? Colors.moderate : Colors.busy;
+function EmergencyClinicCard({ clinic, onPress }: { clinic: EmergencyClinic; onPress: () => void }) {
+  const waitColor = clinic.trafficLevel === "low" ? Colors.low : clinic.trafficLevel === "moderate" ? Colors.moderate : Colors.busy;
+  const waitLabel = clinic.trafficLevel === "low" ? "Low wait" : clinic.trafficLevel === "moderate" ? "Moderate wait" : "High wait";
   return (
     <TouchableOpacity
-      onPress={() =>
-        Alert.alert(
-          clinic.name,
-          `${clinic.type}\n${clinic.distance} • ${clinic.area}\n${clinic.hours}\n${clinic.wait}\nEstimated arrival: ${clinic.arrival}`
-        )
-      }
+      onPress={onPress}
       activeOpacity={0.85}
       style={{
         backgroundColor: Colors.white,
@@ -208,27 +175,27 @@ function EmergencyClinicCard({ clinic }: { clinic: typeof EMERGENCY_CLINICS[0] }
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.dark }}>{clinic.name}</Text>
           <View style={{ backgroundColor: Colors.redLight, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, alignSelf: "flex-start", marginTop: 2 }}>
-            <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.danger }}>{clinic.type}</Text>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.danger }}>{clinic.emergencyType}</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
             <LocationIcon size={11} color={Colors.muted} />
-            <Text style={{ fontSize: 11, color: Colors.muted }}>{clinic.distance} • {clinic.area}</Text>
+            <Text style={{ fontSize: 11, color: Colors.muted }}>{clinic.distance} away • {clinic.area}</Text>
           </View>
           <View style={{ flexDirection: "row", gap: 12, marginTop: 6 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success }} />
-              <Text style={{ fontSize: 11, color: Colors.success, fontWeight: "600" }}>{clinic.hours}</Text>
+              <Text style={{ fontSize: 11, color: Colors.success, fontWeight: "600" }}>{clinic.emergencyHours}</Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <PeopleIcon color={waitColor} size={12} />
-              <Text style={{ fontSize: 11, color: waitColor, fontWeight: "600" }}>{clinic.wait}</Text>
+              <Text style={{ fontSize: 11, color: waitColor, fontWeight: "600" }}>{waitLabel}</Text>
             </View>
           </View>
         </View>
         {/* Arrival time */}
         <View style={{ alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 10, color: Colors.muted }}>Est. arrival</Text>
-          <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.danger }}>{clinic.arrival}</Text>
+          <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.danger }}>{clinic.emergencyArrival}</Text>
           <ChevronRightIcon size={16} color={Colors.muted} />
         </View>
       </View>
@@ -279,6 +246,26 @@ function EmergencyMap() {
 
 export default function EmergencyScreen() {
   const router = useRouter();
+  const nearestEmergencyClinic = EMERGENCY_CLINICS[0];
+  const emergencyLocation = "-33.9249, 18.4241";
+  const openEmergencyMap = () => {
+    router.push({
+      pathname: "/clinic/directions",
+      params: {
+        clinicId: nearestEmergencyClinic.id,
+        clinicName: nearestEmergencyClinic.name,
+      },
+    });
+  };
+  const copyEmergencyLocation = async () => {
+    const message = `ClinicQ emergency location: ${emergencyLocation}`;
+    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(message);
+      Alert.alert("Location copied", "Your emergency location is ready to paste into a message.");
+      return;
+    }
+    await Share.share({ title: "Emergency location", message });
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -377,13 +364,17 @@ export default function EmergencyScreen() {
         <View>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Nearest emergency clinics</Text>
-            <TouchableOpacity onPress={() => Alert.alert("Map view", "The nearest emergency clinics are shown in the map preview below.")} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity onPress={openEmergencyMap} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.danger }}>View on map</Text>
               <LocationIcon size={13} color={Colors.danger} />
             </TouchableOpacity>
           </View>
           {EMERGENCY_CLINICS.map((clinic) => (
-            <EmergencyClinicCard key={clinic.num} clinic={clinic} />
+            <EmergencyClinicCard
+              key={clinic.id}
+              clinic={clinic}
+              onPress={() => router.push(`/clinic/${clinic.id}`)}
+            />
           ))}
         </View>
 
@@ -409,7 +400,7 @@ export default function EmergencyScreen() {
             </View>
           </View>
           <TouchableOpacity
-            onPress={() => Linking.openURL("https://www.google.com/maps/search/?api=1&query=nearest+emergency+clinic")}
+            onPress={openEmergencyMap}
             style={{
               backgroundColor: Colors.danger,
               borderRadius: 14,
@@ -421,7 +412,7 @@ export default function EmergencyScreen() {
             <Text style={{ color: Colors.white, fontSize: 15, fontWeight: "700" }}>Get Directions</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => Alert.alert("Location shared", "Your live location has been shared with your emergency contacts.")}
+            onPress={copyEmergencyLocation}
             style={{
               borderWidth: 1,
               borderColor: Colors.border,
@@ -434,14 +425,14 @@ export default function EmergencyScreen() {
               gap: 6,
             }}
           >
-            <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.dark }}>Share Location</Text>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.dark }}>Copy Location</Text>
             <Text style={{ fontSize: 14 }}>↗</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── Medical ID ── */}
         <TouchableOpacity
-          onPress={() => Alert.alert("Medical ID", "Blood type, allergies, medication and emergency contacts would be shown to responders here.")}
+          onPress={() => router.push({ pathname: "/health-records", params: { showHealthId: "1" } })}
           style={{
             backgroundColor: Colors.white,
             borderRadius: 16,

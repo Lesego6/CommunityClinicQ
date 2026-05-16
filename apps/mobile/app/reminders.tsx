@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import Svg, { Path, Circle } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
@@ -31,6 +32,14 @@ function BellIcon({ size = 22, hasDot = false }: { size?: number; hasDot?: boole
         <View style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.secondary, borderWidth: 1.5, borderColor: Colors.white }} />
       )}
     </View>
+  );
+}
+
+function BackIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 12H5M12 19L5 12L12 5" stroke={Colors.dark} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
   );
 }
 
@@ -205,6 +214,7 @@ function ReminderCard({ item, completed = false, onDotsPress }: { key?: React.Ke
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function RemindersScreen() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const isNarrow = width < 420;
   const [activeFilter, setActiveFilter] = useState("all");
@@ -324,17 +334,34 @@ export default function RemindersScreen() {
       <View
         style={{
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           paddingHorizontal: 20,
           paddingVertical: 12,
           backgroundColor: Colors.white,
           borderBottomWidth: 1,
           borderBottomColor: Colors.border,
+          gap: 10,
         }}
       >
-        <ClinicQLogo size={28} />
-        <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Reminders</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: Colors.surface,
+          }}
+        >
+          <BackIcon />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <ClinicQLogo size={28} />
+          <Text style={{ fontSize: 13, fontWeight: "700", color: Colors.dark, marginTop: 2 }}>Reminders</Text>
+        </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
           <TouchableOpacity
             onPress={() =>

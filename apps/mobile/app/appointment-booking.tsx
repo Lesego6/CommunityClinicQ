@@ -247,7 +247,7 @@ export default function AppointmentBookingScreen() {
       [
         {
           text: "View appointments",
-          onPress: () => router.replace("/profile"),
+          onPress: () => router.replace("/(tabs)/profile"),
         },
         { text: "Done", onPress: () => router.back() },
       ]
@@ -299,7 +299,7 @@ export default function AppointmentBookingScreen() {
         >
           <LocationIcon size={16} color={Colors.primary} />
           <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: Colors.dark }}>Langa Community Clinic</Text>
-          <TouchableOpacity onPress={() => navigate("/nearby")}>
+          <TouchableOpacity onPress={() => navigate("/(tabs)/nearby")}>
             <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Change</Text>
           </TouchableOpacity>
         </View>

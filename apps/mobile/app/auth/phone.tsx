@@ -274,9 +274,9 @@ export default function PhoneScreen() {
 
           <View style={styles.loginRow}>
             <View style={styles.loginLine} />
-            <Text style={styles.loginText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => phoneRef.current?.focus()}>
-              <Text style={styles.loginLink}>Login</Text>
+            <Text style={styles.loginText}>Clinic staff or admin? </Text>
+            <TouchableOpacity onPress={() => navigateWithBlur(router, "/auth/admin-login")}>
+              <Text style={styles.loginLink}>Admin login</Text>
             </TouchableOpacity>
             <View style={styles.loginLine} />
           </View>

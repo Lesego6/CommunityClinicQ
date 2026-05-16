@@ -11,6 +11,7 @@ export default function Index() {
   const authHydrated = useAuthStore((s) => s._hasHydrated);
 
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const role = useAuthStore((s) => s.role);
   const onboardingComplete = useAppStore((s) => s.onboardingComplete);
 
   // Wait for persist stores and the Expo Router navigation tree to be fully hydrated
@@ -24,7 +25,10 @@ export default function Index() {
 
   // Once ready, we safely Redirect
   if (isAuthenticated) {
-    return <Redirect href="/home" />;
+    if (role === "admin") {
+      return <Redirect href="/admin-dashboard" />;
+    }
+    return <Redirect href="/(tabs)/home" />;
   }
 
   if (!onboardingComplete) {

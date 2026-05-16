@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Path, Circle, Rect, G } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
@@ -22,6 +22,14 @@ function ShieldIcon({ size = 22, color = Colors.dark }: { size?: number; color?:
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke={color} strokeWidth={2} fill="none" />
+    </Svg>
+  );
+}
+
+function BackIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 12H5M12 19L5 12L12 5" stroke={Colors.dark} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -130,6 +138,7 @@ const TABS = ["Overview", "Vaccinations", "Prescriptions", "Visit History", "Not
 
 export default function HealthRecordsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ showHealthId?: string }>();
   const { width } = useWindowDimensions();
   const isNarrow = width < 430;
   const [activeTab, setActiveTab] = useState("Overview");
@@ -137,6 +146,11 @@ export default function HealthRecordsScreen() {
   const user = useAppStore((s) => s.user);
   const shouldShow = (tab: string) => activeTab === "Overview" || activeTab === tab;
   const healthId = "960725 1234 08 7";
+  React.useEffect(() => {
+    if (params.showHealthId === "1") {
+      setShowHealthId(true);
+    }
+  }, [params.showHealthId]);
   const shareRecords = async () => {
     const message = `ClinicQ Health Records\nPatient: ${user.name}\nHealth ID: ${healthId}\nBlood Type: ${user.bloodType ?? "Unknown"}`;
     try {
@@ -152,17 +166,34 @@ export default function HealthRecordsScreen() {
       <View
         style={{
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           paddingHorizontal: 20,
           paddingVertical: 12,
           backgroundColor: Colors.white,
           borderBottomWidth: 1,
           borderBottomColor: Colors.border,
+          gap: 10,
         }}
       >
-        <ClinicQLogo size={28} />
-        <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Health Records</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: Colors.surface,
+          }}
+        >
+          <BackIcon />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <ClinicQLogo size={28} />
+          <Text style={{ fontSize: 13, fontWeight: "700", color: Colors.dark, marginTop: 2 }}>Health Records</Text>
+        </View>
         <TouchableOpacity
           onPress={() =>
             Alert.alert(
@@ -170,6 +201,14 @@ export default function HealthRecordsScreen() {
               "Your health record is protected and only shared when you choose to share it."
             )
           }
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: Colors.surface,
+          }}
         >
           <ShieldIcon size={22} color={Colors.dark} />
         </TouchableOpacity>

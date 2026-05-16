@@ -12,6 +12,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { ClinicQLogo } from "../../components/ui/ClinicQLogo";
+import { CLINICS } from "../../constants/clinics";
 
 function BackIcon({ size = 22 }: { size?: number }) {
   return (
@@ -99,17 +100,19 @@ function MockMap() {
 
 export default function DirectionsScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { clinicId, clinicName } = useLocalSearchParams<{ clinicId?: string; clinicName?: string }>();
   const [activeTransport, setActiveTransport] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const selected = TRANSPORT_OPTIONS[activeTransport];
+  const clinic = CLINICS.find((item) => item.id === clinicId) ?? CLINICS[0];
+  const displayName = clinicName ?? clinic.name;
 
   const handleOpenMaps = () => {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      Linking.openURL("https://maps.google.com/?q=Langa+Community+Clinic+Cape+Town").catch(() => {
+      Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(`${displayName} ${clinic.area}`)}`).catch(() => {
         Alert.alert("Maps unavailable", "Could not open maps on this device.");
       });
     }, 800);
@@ -137,10 +140,10 @@ export default function DirectionsScreen() {
             <Text style={{ fontSize: 24 }}>🏥</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: "700", color: Colors.dark }}>Langa Community Clinic</Text>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: Colors.dark }}>{displayName}</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
               <LocationIcon size={12} color={Colors.muted} />
-              <Text style={{ fontSize: 12, color: Colors.muted }}>Washington St, Langa, Cape Town</Text>
+              <Text style={{ fontSize: 12, color: Colors.muted }}>{clinic.area}</Text>
             </View>
           </View>
           <View style={{ backgroundColor: Colors.primaryLight, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>

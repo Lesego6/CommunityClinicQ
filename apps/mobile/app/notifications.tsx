@@ -25,6 +25,14 @@ function SettingsIcon({ size = 22 }: { size?: number }) {
   );
 }
 
+function BackIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 12H5M12 19L5 12L12 5" stroke={Colors.dark} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 // ─── Filter Tabs ─────────────────────────────────────────────────────────────
 
 const FILTER_TABS = ["All", "Queues", "Appointments", "Medications", "System"];
@@ -161,23 +169,38 @@ export default function NotificationsScreen() {
       <View
         style={{
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           paddingHorizontal: 20,
           paddingVertical: 12,
           backgroundColor: Colors.white,
           borderBottomWidth: 1,
           borderBottomColor: Colors.border,
+          gap: 10,
         }}
       >
-        <ClinicQLogo size={28} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: Colors.surface,
+          }}
+        >
+          <BackIcon />
+        </TouchableOpacity>
         <View style={{ alignItems: "center" }}>
+          <ClinicQLogo size={28} />
           <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Notifications</Text>
           {unreadCount > 0 && (
             <Text style={{ fontSize: 11, color: Colors.muted }}>{unreadCount} unread</Text>
           )}
         </View>
-        <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+        <View style={{ flexDirection: "row", gap: 10, alignItems: "center", flex: 1, justifyContent: "flex-end" }}>
           <TouchableOpacity onPress={markAllRead} accessibilityLabel="Mark all notifications as read">
             <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>
               {unreadCount > 0 ? "Mark all" : "All read"}

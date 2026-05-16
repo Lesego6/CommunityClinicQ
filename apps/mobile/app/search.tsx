@@ -27,6 +27,14 @@ function SearchIcon({ size = 18, color = Colors.muted }: { size?: number; color?
   );
 }
 
+function BackIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 12H5M12 19L5 12L12 5" stroke={Colors.dark} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 function XIcon({ size = 18, color = Colors.muted }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -362,17 +370,34 @@ export default function SearchScreen() {
       <View
         style={{
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
           paddingHorizontal: 20,
           paddingVertical: 12,
           backgroundColor: Colors.white,
           borderBottomWidth: 1,
           borderBottomColor: Colors.border,
+          gap: 10,
         }}
       >
-        <ClinicQLogo size={28} />
-        <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Search & Filters</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: Colors.surface,
+          }}
+        >
+          <BackIcon />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <ClinicQLogo size={28} />
+          <Text style={{ fontSize: 13, fontWeight: "700", color: Colors.dark, marginTop: 2 }}>Search & Filters</Text>
+        </View>
         <TouchableOpacity onPress={handleReset}>
           <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Reset all</Text>
         </TouchableOpacity>

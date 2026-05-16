@@ -4,10 +4,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ─── Demo credentials ─────────────────────────────────────────────────────────
 export const DEMO_OTP = "1234";
+export const ADMIN_PRIVATE_CODE = "CLINICQ-ADMIN";
+
+type AuthRole = "patient" | "admin";
 
 interface AuthState {
   /** E.164-ish phone number the user entered */
   phone: string | null;
+  /** Admin/staff name captured by private-code login */
+  adminName: string | null;
+  role: AuthRole;
   /** Whether the user has completed phone + OTP verification */
   isAuthenticated: boolean;
   /** True once AsyncStorage rehydration has finished. */
@@ -16,6 +22,7 @@ interface AuthState {
 
   setPhone: (phone: string) => void;
   login: () => void;
+  adminLogin: (name: string, code: string) => boolean;
   /**
    * Full sign-out: clears auth state AND resets onboardingComplete in appStore
    * so the two stores never drift out of sync.
@@ -27,14 +34,31 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       phone: null,
+      adminName: null,
+      role: "patient",
       isAuthenticated: false,
       _hasHydrated: false,
       _setHasHydrated: (v) => set({ _hasHydrated: v }),
 
       setPhone: (phone) => set({ phone }),
-      login: () => set({ isAuthenticated: true }),
+      login: () => set({ isAuthenticated: true, role: "patient" }),
+      adminLogin: (name, code) => {
+        const cleanName = name.trim();
+        const cleanCode = code.trim().toUpperCase();
+        const allowed = cleanName.length >= 2 && cleanCode === ADMIN_PRIVATE_CODE;
+
+        if (!allowed) return false;
+
+        set({
+          phone: null,
+          adminName: cleanName,
+          role: "admin",
+          isAuthenticated: true,
+        });
+        return true;
+      },
       logout: () => {
-        set({ phone: null, isAuthenticated: false });
+        set({ phone: null, adminName: null, role: "patient", isAuthenticated: false });
         // Lazily import to avoid a circular-module issue at the top level.
         // This resets onboardingComplete so the user goes through auth again
         // if they log out, rather than landing on /auth/phone with stale state.
@@ -48,7 +72,12 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "auth-store",
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ phone: s.phone, isAuthenticated: s.isAuthenticated }),
+      partialize: (s) => ({
+        phone: s.phone,
+        adminName: s.adminName,
+        role: s.role,
+        isAuthenticated: s.isAuthenticated,
+      }),
       onRehydrateStorage: () => (state) => {
         state?._setHasHydrated(true);
       },

@@ -5,11 +5,17 @@ export interface Clinic {
   num: number;
   name: string;
   area: string;
+  phone?: string;
   distance: string;
   waitTime: string;
   trafficLevel: TrafficLevel;
   trafficLabel: string;
   services: string[];
+  stockHighlights?: Array<{
+    name: string;
+    status: "in-stock" | "low-stock" | "out-of-stock";
+    detail?: string;
+  }>;
   rating: number;
   reviews: number;
   imageIndex: number;

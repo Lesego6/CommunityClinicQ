@@ -1,5 +1,5 @@
 import { PlaceholderPage } from "../../components/DashboardPages";
 
 export default function Page() {
-  return <PlaceholderPage title="Queue Management" active="/queues" />;
+  return <PlaceholderPage title="Messages" active="/messages" />;
 }

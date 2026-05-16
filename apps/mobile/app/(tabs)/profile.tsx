@@ -163,14 +163,6 @@ function QuickActionBtn({
   );
 }
 
-function BackIcon({ size = 22 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M19 12H5M12 19L5 12L12 5" stroke={Colors.dark} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
@@ -270,14 +262,6 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <BackIcon />
-          </TouchableOpacity>
           <ClinicQLogo size={26} />
         </View>
         <View style={styles.headerRight}>
@@ -565,14 +549,6 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.surface,
-  },
   headerRight: { flexDirection: "row", gap: 10 },
 
   scrollContent: {},
