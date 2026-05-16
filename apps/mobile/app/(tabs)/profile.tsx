@@ -37,7 +37,7 @@ import {
 } from "../../components/ui/Icons";
 import { useAppStore } from "../../stores/appStore";
 import { useAuthStore } from "../../stores/authStore";
-import { getGreeting, navigateWithBlur } from "../../utils/ui";
+import { getBottomPadding, getGreeting, navigateWithBlur } from "../../utils/ui";
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
@@ -163,6 +163,14 @@ function QuickActionBtn({
   );
 }
 
+function BackIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 12H5M12 19L5 12L12 5" stroke={Colors.dark} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
@@ -261,7 +269,17 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.screen} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <ClinicQLogo size={28} />
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <BackIcon />
+          </TouchableOpacity>
+          <ClinicQLogo size={26} />
+        </View>
         <View style={styles.headerRight}>
           <TouchableOpacity
             onPress={() => navigate("/notifications")}
@@ -287,7 +305,10 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: getBottomPadding(28) }]}
+      >
         {/* ── Profile Hero ── */}
         <View style={styles.profileHero}>
           <View style={styles.profileHeroRow}>
@@ -323,28 +344,25 @@ export default function ProfileScreen() {
           </View>
 
           {/* Stats */}
-          <View style={[styles.statsRow, isNarrow && styles.statsRowNarrow]}>
+          <View style={styles.statsRow}>
             <StatCard
               icon={<PersonIcon size={20} color={Colors.primary} />}
               value={user.memberSince}
               label="Member since"
               color={Colors.primary}
             />
-            <View style={styles.statDivider} />
             <StatCard
               icon={<StarIcon size={20} color={Colors.yellow} />}
               value="8"
               label="Total visits"
               color={Colors.yellow}
             />
-            <View style={styles.statDivider} />
             <StatCard
               icon={<CalendarIcon size={20} color={Colors.teal} />}
               value="6"
               label="Queues joined"
               color={Colors.teal}
             />
-            <View style={styles.statDivider} />
             <StatCard
               icon={
                 <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
@@ -452,7 +470,7 @@ export default function ProfileScreen() {
         {/* ── Quick Actions ── */}
         <View style={styles.quickActionsSection}>
           <Text style={styles.quickActionsTitle}>Quick Actions</Text>
-          <View style={[styles.quickActionsRow, isNarrow && styles.quickActionsRowNarrow]}>
+          <View style={styles.quickActionsRow}>
             <QuickActionBtn
               bg={Colors.primaryLight}
               color={Colors.primary}
@@ -540,28 +558,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
+  },
   headerRight: { flexDirection: "row", gap: 10 },
 
-  scrollContent: { paddingBottom: 32 },
+  scrollContent: {},
 
   // Profile hero
   profileHero: {
     backgroundColor: Colors.white,
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 20,
+    paddingTop: 18,
+    paddingBottom: 18,
   },
-  profileHeroRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 16 },
+  profileHeroRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     borderWidth: 3,
     borderColor: Colors.primary,
   },
@@ -578,33 +605,40 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.white,
   },
-  greetingLine: { fontSize: 14, color: Colors.muted },
+  greetingLine: { fontSize: 13, color: Colors.muted },
   greetingNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  greetingName: { fontSize: 22, fontWeight: "800", color: Colors.dark },
+  greetingName: { fontSize: 21, fontWeight: "900", color: Colors.dark },
   greetingWave: { fontSize: 20 },
   greetingTagline: { fontSize: 12, color: Colors.muted, marginTop: 2 },
 
   // Stats
   statsRow: {
     flexDirection: "row",
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
+    flexWrap: "wrap",
+    gap: 10,
   },
-  statsRowNarrow: { flexWrap: "wrap" },
-  statCard: { flex: 1, minWidth: 86, alignItems: "center", gap: 4 },
-  statValue: { fontSize: 18, fontWeight: "800" },
-  statLabel: { fontSize: 10, color: Colors.muted, textAlign: "center" },
-  statDivider: { width: 1, backgroundColor: Colors.border },
+  statsRowNarrow: {},
+  statCard: {
+    width: "47%",
+    minHeight: 82,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+  },
+  statValue: { fontSize: 15, fontWeight: "900" },
+  statLabel: { fontSize: 11, color: Colors.muted, textAlign: "center", lineHeight: 15 },
+  statDivider: { display: "none" },
 
   // Card
   card: {
     backgroundColor: Colors.white,
     marginTop: 12,
     marginHorizontal: 20,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 18,
+    padding: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -632,7 +666,7 @@ const styles = StyleSheet.create({
   },
   infoRowIcon: { width: 24 },
   infoRowLabel: { fontSize: 11, color: Colors.muted },
-  infoRowValue: { fontSize: 14, fontWeight: "500", color: Colors.dark, flexShrink: 1 },
+  infoRowValue: { fontSize: 14, fontWeight: "600", color: Colors.dark, flexShrink: 1, lineHeight: 19 },
 
   // Reminder row
   reminderRow: {
@@ -659,11 +693,11 @@ const styles = StyleSheet.create({
   // Quick actions
   quickActionsSection: { marginTop: 12, marginHorizontal: 20 },
   quickActionsTitle: { fontSize: 16, fontWeight: "700", color: Colors.dark, marginBottom: 12 },
-  quickActionsRow: { flexDirection: "row", gap: 10 },
-  quickActionsRowNarrow: { flexWrap: "wrap" },
+  quickActionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  quickActionsRowNarrow: {},
   quickActionBtn: {
-    flex: 1,
-    minWidth: 132,
+    width: "48%",
+    minHeight: 106,
     borderRadius: 16,
     padding: 16,
     alignItems: "center",

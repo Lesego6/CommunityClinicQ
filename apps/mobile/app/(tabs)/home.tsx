@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   Platform,
   Image,
-  ImageBackground,
   StatusBar,
   StyleSheet,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
@@ -231,9 +231,11 @@ function ClinicCard({
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const user = useAppStore((s) => s.user);
   const unreadCount = useAppStore((s) => s.notifications.filter((n) => !n.read).length);
   const updateUser = useAppStore((s) => s.updateUser);
+  const isTablet = width >= 768;
 
   const greeting = useMemo(() => getGreeting(), []);
   const firstName = user.name.split(" ")[0];
@@ -262,15 +264,15 @@ export default function HomeScreen() {
       <StatusBar barStyle="dark-content" />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: getBottomPadding() }}
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && styles.scrollContentTablet,
+          { paddingBottom: getBottomPadding(20) },
+        ]}
       >
+        <View style={styles.contentFrame}>
         {/* ── Hero Header ── */}
-        <ImageBackground
-          source={require("../../assets/backgrounds/bg.jpeg")}
-          style={styles.heroBg}
-          imageStyle={styles.heroBgImage}
-        >
-          <View style={styles.heroOverlay}>
+        <View style={styles.heroCard}>
             {/* Top bar */}
             <View style={styles.topBar}>
               <ClinicQLogo size={30} />
@@ -317,8 +319,7 @@ export default function HomeScreen() {
                 Shorter queues. Better care.{"\n"}Stronger communities.
               </Text>
             </View>
-          </View>
-        </ImageBackground>
+        </View>
 
         {/* ── Search Bar ── */}
         <View style={styles.searchRow}>
@@ -342,7 +343,7 @@ export default function HomeScreen() {
         </View>
 
         {/* ── Quick Actions ── */}
-        <View style={styles.quickActionsCard}>
+        <View style={[styles.quickActionsCard, isTablet && styles.quickActionsCardTablet]}>
           <QuickAction
             bgColor={Colors.primary}
             label="Nearby Clinics"
@@ -456,6 +457,7 @@ export default function HomeScreen() {
             <Text style={styles.communityBtnText}>See how</Text>
           </TouchableOpacity>
         </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -465,11 +467,18 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.surface },
+  scrollContent: { paddingTop: 0 },
+  scrollContentTablet: { alignItems: "center" },
+  contentFrame: { width: "100%", maxWidth: 720, alignSelf: "center" },
 
   // Hero
-  heroBg: { paddingTop: 40 },
-  heroBgImage: { opacity: 0.35 },
-  heroOverlay: { backgroundColor: "rgba(255,255,255,0.88)", paddingBottom: 0 },
+  heroCard: {
+    backgroundColor: Colors.white,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
 
   // Top bar
   topBar: {
@@ -477,8 +486,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 2,
+    paddingBottom: 16,
   },
   topBarRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   topBarBtn: {
@@ -505,20 +514,20 @@ const styles = StyleSheet.create({
   langCode: { fontSize: 13, fontWeight: "600", color: Colors.dark },
 
   // Greeting
-  greetingBlock: { paddingHorizontal: 20, paddingBottom: 16 },
-  greetingLine: { fontSize: 16, color: Colors.darkMid, fontWeight: "400" },
+  greetingBlock: { paddingHorizontal: 20 },
+  greetingLine: { fontSize: 13, color: Colors.darkMid, fontWeight: "500" },
   greetingNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  greetingName: { fontSize: 28, fontWeight: "800", color: Colors.dark },
-  greetingWave: { fontSize: 24 },
-  greetingTagline: { fontSize: 14, color: Colors.muted, marginTop: 4, lineHeight: 20 },
+  greetingName: { fontSize: 24, fontWeight: "900", color: Colors.dark },
+  greetingWave: { fontSize: 20 },
+  greetingTagline: { fontSize: 13, color: Colors.muted, marginTop: 4, lineHeight: 18 },
 
   // Search
   searchRow: {
     flexDirection: "row",
     gap: 10,
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingTop: 14,
+    paddingBottom: 10,
   },
   searchInput: {
     flex: 1,
@@ -527,16 +536,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 28,
     paddingHorizontal: 16,
-    paddingVertical: 13,
+    paddingVertical: 12,
     gap: 10,
     boxShadow: "0 2px 8px rgba(0,0,0,0.06)" as any,
     elevation: 2,
   },
-  searchPlaceholder: { fontSize: 15, color: Colors.muted },
+  searchPlaceholder: { fontSize: 14, color: Colors.muted },
   filterBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -548,19 +557,31 @@ const styles = StyleSheet.create({
   quickActionsCard: {
     backgroundColor: Colors.white,
     marginHorizontal: 20,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 18,
+    padding: 14,
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     boxShadow: "0 2px 8px rgba(0,0,0,0.06)" as any,
     elevation: 2,
-    marginBottom: 24,
+    marginBottom: 22,
+    gap: 10,
   },
-  quickActionWrapper: { alignItems: "center", flex: 1 },
-  quickActionIcon: {
-    width: 60,
-    height: 60,
+  quickActionsCardTablet: { flexWrap: "nowrap", padding: 18 },
+  quickActionWrapper: {
+    alignItems: "center",
+    width: "47%",
+    minHeight: 94,
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
     borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 6,
@@ -569,9 +590,10 @@ const styles = StyleSheet.create({
   },
   quickActionLabel: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "700",
     color: Colors.dark,
     textAlign: "center",
+    lineHeight: 16,
   },
 
   // Section
@@ -595,15 +617,15 @@ const styles = StyleSheet.create({
     boxShadow: "0 2px 8px rgba(0,0,0,0.06)" as any,
     elevation: 2,
   },
-  clinicCardInner: { flexDirection: "row", padding: 12, gap: 12 },
-  clinicImage: { width: 80, height: 80, borderRadius: 12 },
+  clinicCardInner: { flexDirection: "row", padding: 12, gap: 10 },
+  clinicImage: { width: 72, height: 76, borderRadius: 12 },
   clinicInfo: { flex: 1 },
   clinicNameRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  clinicName: { fontSize: 15, fontWeight: "700", color: Colors.dark, flex: 1 },
+  clinicName: { fontSize: 14, fontWeight: "800", color: Colors.dark, flex: 1, lineHeight: 18 },
   heartBtn: { padding: 2 },
   clinicAreaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2, marginBottom: 8 },
   clinicArea: { fontSize: 12, color: Colors.muted },
@@ -611,6 +633,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
+    gap: 8,
   },
   clinicChevron: { justifyContent: "center" },
 
@@ -618,26 +641,26 @@ const styles = StyleSheet.create({
   waitBadgeRow: {
     backgroundColor: Colors.primaryLight,
     borderRadius: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
   },
-  waitBadgeLabel: { fontSize: 11, color: Colors.muted },
-  waitBadgeTime: { fontSize: 15, fontWeight: "700", color: Colors.primary, marginTop: 2 },
+  waitBadgeLabel: { fontSize: 10, color: Colors.muted },
+  waitBadgeTime: { fontSize: 14, fontWeight: "800", color: Colors.primary, marginTop: 2 },
   waitBarTrack: {
     height: 3,
     backgroundColor: "#E5E7EB",
     borderRadius: 2,
     marginTop: 4,
-    width: 100,
+    width: 86,
   },
   waitBarFill: { height: 3, borderRadius: 2 },
 
   // Traffic badge
   trafficBadge: { flexDirection: "row", alignItems: "center", gap: 4 },
-  trafficLevel: { fontSize: 13, fontWeight: "700" },
+  trafficLevel: { fontSize: 12, fontWeight: "800" },
   trafficLabel: { fontSize: 11, color: Colors.muted },
 
   // Community banner

@@ -8,17 +8,26 @@ const tabBarStyle = {
   backgroundColor: "#fff",
   borderTopColor: Colors.border,
   borderTopWidth: 1,
-  height: Platform.OS === "ios" ? 84 : 64,
-  paddingBottom: Platform.OS === "ios" ? 24 : 8,
+  height: Platform.OS === "ios" ? 96 : Platform.OS === "web" ? 92 : 88,
+  paddingBottom: Platform.OS === "ios" ? 26 : Platform.OS === "web" ? 18 : 16,
   paddingTop: 8,
-  elevation: 8,
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: -2 },
-  shadowOpacity: 0.06,
-  shadowRadius: 8,
   ...(Platform.OS === "web"
-    ? { position: "fixed" as any, bottom: 0, left: 0, right: 0, zIndex: 100 }
-    : {}),
+    ? {
+        position: "fixed" as any,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        boxShadow: "0 -3px 14px rgba(15, 23, 42, 0.10)",
+        overflow: "visible" as const,
+      }
+    : {
+        elevation: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      }),
 };
 
 // ─── Tab Icon Components ─────────────────────────────────────────────────────
@@ -168,9 +177,21 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: Colors.muted,
         tabBarStyle,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "500",
-          marginTop: 2,
+          fontSize: 10,
+          fontWeight: "700",
+          lineHeight: 13,
+          marginTop: 1,
+          marginBottom: 0,
+        },
+        tabBarItemStyle: {
+          height: 58,
+          paddingTop: 2,
+          paddingBottom: 0,
+          justifyContent: "center",
+        },
+        tabBarIconStyle: {
+          marginTop: 0,
+          marginBottom: 0,
         },
       }}
     >
@@ -178,35 +199,35 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) => <HomeIcon color={color} size={22} />,
+          tabBarIcon: ({ color }) => <HomeIcon color={color} size={21} />,
         }}
       />
       <Tabs.Screen
         name="nearby"
         options={{
           title: "Nearby",
-          tabBarIcon: ({ color }) => <NearbyIcon color={color} size={22} />,
+          tabBarIcon: ({ color }) => <NearbyIcon color={color} size={21} />,
         }}
       />
       <Tabs.Screen
         name="queue"
         options={{
           title: "Queue",
-          tabBarIcon: ({ color }) => <QueueIcon color={color} size={22} badge={hasActiveQueue ? 1 : undefined} />,
+          tabBarIcon: ({ color }) => <QueueIcon color={color} size={21} badge={hasActiveQueue ? 1 : undefined} />,
         }}
       />
       <Tabs.Screen
         name="medications"
         options={{
           title: "Medications",
-          tabBarIcon: ({ color }) => <MedicationsIcon color={color} size={22} />,
+          tabBarIcon: ({ color }) => <MedicationsIcon color={color} size={21} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) => <ProfileIcon color={color} size={22} />,
+          tabBarIcon: ({ color }) => <ProfileIcon color={color} size={21} />,
         }}
       />
     </Tabs>

@@ -29,7 +29,7 @@ import {
   MEDICATION_NEARBY_RESULTS,
   type MedicationClinicResult,
 } from "../../constants/clinics";
-import { navigateWithBlur } from "../../utils/ui";
+import { getBottomPadding, navigateWithBlur } from "../../utils/ui";
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 
@@ -150,6 +150,14 @@ function ClinicMedResult({ item }: { item: MedicationClinicResult }) {
   );
 }
 
+function BackIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 12H5M12 19L5 12L12 5" stroke={Colors.dark} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function MedicationsScreen() {
@@ -180,7 +188,17 @@ export default function MedicationsScreen() {
     <SafeAreaView style={styles.screen} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <ClinicQLogo size={28} />
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <BackIcon />
+          </TouchableOpacity>
+          <ClinicQLogo size={26} />
+        </View>
         <Text style={styles.headerTitle}>Medications</Text>
         <TouchableOpacity
           onPress={() => navigate("/notifications")}
@@ -200,20 +218,9 @@ export default function MedicationsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: getBottomPadding(24) }]}
       >
-        {/* Hero Banner */}
-        <View style={styles.heroBanner}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.heroTitle}>
-              Check medicine{"\n"}availability near you
-            </Text>
-            <Text style={styles.heroBody}>
-              Search for your medication and find clinics that have it in stock.
-            </Text>
-          </View>
-          <Text style={styles.heroEmoji}>💊</Text>
-        </View>
+        <View style={styles.contentFrame}>
 
         {/* Search Bar */}
         <View style={styles.searchRow}>
@@ -325,6 +332,7 @@ export default function MedicationsScreen() {
             <Text style={styles.alertBannerBtnText}>Enable Alerts</Text>
           </TouchableOpacity>
         </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -339,15 +347,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
+  },
   headerTitle: { fontSize: 17, fontWeight: "700", color: Colors.dark },
 
-  scrollContent: { paddingBottom: 24 },
+  scrollContent: {},
+  contentFrame: { width: "100%", maxWidth: 720, alignSelf: "center" },
 
   // Hero
   heroBanner: {
@@ -370,7 +388,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 4,
+    paddingBottom: 10,
   },
   searchInput: {
     flex: 1,
@@ -379,12 +397,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 28,
     paddingHorizontal: 16,
-    paddingVertical: 13,
+    paddingVertical: 11,
     gap: 10,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  searchTextInput: { flex: 1, fontSize: 14, color: Colors.dark },
+  searchTextInput: { flex: 1, fontSize: 14, color: Colors.dark, minWidth: 0 },
   filterBtn: {
     width: 50,
     height: 50,
@@ -395,20 +413,21 @@ const styles = StyleSheet.create({
   },
 
   // Categories
-  categoriesRow: { paddingHorizontal: 20, paddingVertical: 12, gap: 10 },
+  categoriesRow: { paddingHorizontal: 20, paddingVertical: 8, gap: 8 },
   categoryTab: {
     alignItems: "center",
-    paddingHorizontal: 12,
+    justifyContent: "center",
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 999,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.border,
-    minWidth: 64,
+    minHeight: 42,
   },
   categoryTabActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  categoryIcon: { fontSize: 20, marginBottom: 4 },
-  categoryLabel: { fontSize: 11, fontWeight: "600", color: Colors.muted },
+  categoryIcon: { display: "none" },
+  categoryLabel: { fontSize: 13, fontWeight: "700", color: Colors.muted },
   categoryLabelActive: { color: Colors.white },
   categoryDot: {
     width: 4,
@@ -419,14 +438,14 @@ const styles = StyleSheet.create({
   },
 
   // Recent searches
-  recentSection: { paddingHorizontal: 20, marginBottom: 16 },
+  recentSection: { paddingHorizontal: 20, marginBottom: 18 },
   recentHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
   },
-  recentTitle: { fontSize: 15, fontWeight: "700", color: Colors.dark },
+  recentTitle: { fontSize: 15, fontWeight: "800", color: Colors.dark },
   clearAllText: { fontSize: 13, fontWeight: "600", color: Colors.primary },
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   searchTag: {
@@ -450,7 +469,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  resultsTitle: { fontSize: 15, fontWeight: "700", color: Colors.dark },
+  resultsTitle: { fontSize: 15, fontWeight: "800", color: Colors.dark },
   sortBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   sortText: { fontSize: 13, color: Colors.muted },
 
@@ -466,14 +485,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  resultCardInner: { flexDirection: "row", padding: 12, gap: 12 },
-  resultImage: { width: 72, height: 72, borderRadius: 12 },
+  resultCardInner: { flexDirection: "row", padding: 12, gap: 10 },
+  resultImage: { width: 68, height: 74, borderRadius: 12 },
   resultNameRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  resultClinicName: { fontSize: 14, fontWeight: "700", color: Colors.dark, flex: 1 },
+  resultClinicName: { fontSize: 14, fontWeight: "800", color: Colors.dark, flex: 1, lineHeight: 18 },
   distanceBadge: {
     backgroundColor: Colors.primaryLight,
     borderRadius: 8,
@@ -483,8 +502,8 @@ const styles = StyleSheet.create({
   distanceBadgeText: { fontSize: 11, fontWeight: "700", color: Colors.primary },
   resultAreaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   resultArea: { fontSize: 11, color: Colors.muted },
-  resultMedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
-  resultMedName: { fontSize: 12, color: Colors.dark },
+  resultMedRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
+  resultMedName: { fontSize: 12, color: Colors.dark, flexShrink: 1 },
   formBadge: {
     backgroundColor: Colors.surface,
     borderRadius: 4,
@@ -497,6 +516,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 6,
+    gap: 8,
   },
   stockBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   stockBadgeText: { fontSize: 11, fontWeight: "700" },
@@ -510,6 +530,7 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: 12,
   },
   alertBannerIcon: {
@@ -527,6 +548,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    minWidth: 120,
+    alignItems: "center",
   },
   alertBannerBtnText: { color: Colors.white, fontSize: 12, fontWeight: "700" },
 });

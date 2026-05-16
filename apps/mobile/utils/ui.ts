@@ -5,7 +5,7 @@ import { Platform } from "react-native";
  * or standard safe-area padding on native.
  */
 export function getBottomPadding(extra = 0): number {
-  return (Platform.OS === "web" ? 80 : 24) + extra;
+  return (Platform.OS === "web" ? 104 : 96) + extra;
 }
 
 /**

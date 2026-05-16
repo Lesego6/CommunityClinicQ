@@ -7,12 +7,14 @@ import {
   Image,
   Linking,
   Alert,
+  StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Path, Circle, Rect, G } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
+import { getBottomPadding } from "../utils/ui";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,14 @@ function BellIcon({ size = 22 }: { size?: number }) {
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M12 22C13.1046 22 14 21.1046 14 20H10C10 21.1046 10.8954 22 12 22Z" fill={Colors.dark} />
       <Path d="M18 16V11C18 7.68629 15.3137 5 12 5C8.68629 5 6 7.68629 6 11V16L4 18H20L18 16Z" stroke={Colors.dark} strokeWidth={2} fill="none" />
+    </Svg>
+  );
+}
+
+function BackIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 12H5M12 19L5 12L12 5" stroke={Colors.dark} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -73,16 +83,14 @@ function QuickCallCard({
       onPress={onPress}
       activeOpacity={0.8}
       style={{
-        flex: 1,
+        width: "48%",
+        minHeight: 128,
         backgroundColor: Colors.white,
         borderRadius: 16,
         padding: 14,
         alignItems: "center",
         gap: 4,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
+        ...softShadow,
         elevation: 2,
       }}
     >
@@ -169,10 +177,7 @@ function EmergencyClinicCard({ clinic }: { clinic: typeof EMERGENCY_CLINICS[0] }
         borderRadius: 16,
         marginBottom: 12,
         overflow: "hidden",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
+        ...softShadow,
         elevation: 2,
       }}
     >
@@ -279,87 +284,75 @@ export default function EmergencyScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
       {/* Header */}
       <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingHorizontal: 20,
-          paddingVertical: 12,
-          backgroundColor: Colors.white,
-          borderBottomWidth: 1,
-          borderBottomColor: Colors.border,
-        }}
+        style={styles.header}
       >
-        <ClinicQLogo size={28} />
-        <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.danger }}>Emergency Mode</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.headerIconBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <BackIcon />
+        </TouchableOpacity>
+        <View style={styles.headerTitleWrap}>
+          <ClinicQLogo size={26} />
+          <Text style={styles.headerTitle}>Emergency Mode</Text>
+        </View>
         <TouchableOpacity onPress={() => Alert.alert("Emergency alerts", "Emergency mode is active. Use quick call or panic/help for urgent support.")}>
           <BellIcon size={22} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, gap: 16 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: getBottomPadding(28) }}>
         {/* ── Panic Banner ── */}
         <View
           style={{
             backgroundColor: Colors.redLight,
             borderRadius: 20,
             padding: 20,
-            flexDirection: "row",
-            alignItems: "center",
+            alignItems: "stretch",
             gap: 16,
             borderWidth: 1,
             borderColor: Colors.danger + "40",
           }}
         >
-          <View style={{ flex: 1 }}>
+          <View>
             <Text style={{ fontSize: 18, fontWeight: "800", color: Colors.danger }}>In an emergency?</Text>
             <Text style={{ fontSize: 13, color: Colors.darkMid, marginTop: 4 }}>
               We're here to help. Get immediate assistance.
             </Text>
           </View>
-          {/* Panic button */}
-          <TouchableOpacity
-            onPress={() =>
-              Alert.alert(
-                "Emergency help",
-                "Call emergency services immediately if you are in danger.",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Call 112", onPress: () => Linking.openURL("tel:112") },
-                ]
-              )
-            }
-            style={{
-              width: 90,
-              height: 90,
-              borderRadius: 45,
-              backgroundColor: Colors.danger,
-              alignItems: "center",
-              justifyContent: "center",
-              shadowColor: Colors.danger,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.4,
-              shadowRadius: 12,
-              elevation: 8,
-              borderWidth: 4,
-              borderColor: Colors.danger + "40",
-            }}
-          >
-            <Text style={{ fontSize: 28 }}>🚨</Text>
-            <Text style={{ fontSize: 10, fontWeight: "800", color: Colors.white, marginTop: 2 }}>PANIC / HELP</Text>
-          </TouchableOpacity>
-          {/* Action list */}
-          <View style={{ gap: 8 }}>
-            {[
-              { icon: "📍", label: "Share your location" },
-              { icon: "🔔", label: "Alert emergency contacts" },
-              { icon: "🏥", label: "Get help fast" },
-            ].map((item) => (
-              <View key={item.label} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Text style={{ fontSize: 14 }}>{item.icon}</Text>
-                <Text style={{ fontSize: 11, color: Colors.darkMid, fontWeight: "500" }}>{item.label}</Text>
-              </View>
-            ))}
+          <View style={styles.panicRow}>
+            {/* Panic button */}
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert(
+                  "Emergency help",
+                  "Call emergency services immediately if you are in danger.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Call 112", onPress: () => Linking.openURL("tel:112") },
+                  ]
+                )
+              }
+              style={styles.panicButton}
+            >
+              <Text style={{ fontSize: 28 }}>🚨</Text>
+              <Text style={styles.panicButtonText}>PANIC / HELP</Text>
+            </TouchableOpacity>
+            {/* Action list */}
+            <View style={styles.panicActions}>
+              {[
+                { icon: "📍", label: "Share your location" },
+                { icon: "🔔", label: "Alert emergency contacts" },
+                { icon: "🏥", label: "Get help fast" },
+              ].map((item) => (
+                <View key={item.label} style={styles.panicActionRow}>
+                  <Text style={{ fontSize: 14 }}>{item.icon}</Text>
+                  <Text style={styles.panicActionText}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -372,7 +365,7 @@ export default function EmergencyScreen() {
               <ChevronRightIcon size={14} color={Colors.danger} />
             </TouchableOpacity>
           </View>
-          <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
             <QuickCallCard emoji="🚑" label="Ambulance" number="10177" color={Colors.danger} onPress={() => Linking.openURL("tel:10177")} />
             <QuickCallCard emoji="🚔" label="Police" number="10111" color={Colors.blue} onPress={() => Linking.openURL("tel:10111")} />
             <QuickCallCard emoji="🔥" label="Fire" number="10177" color={Colors.orange} onPress={() => Linking.openURL("tel:10177")} />
@@ -400,10 +393,7 @@ export default function EmergencyScreen() {
             backgroundColor: Colors.white,
             borderRadius: 20,
             padding: 16,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
+            ...softShadow,
             elevation: 2,
           }}
         >
@@ -459,10 +449,7 @@ export default function EmergencyScreen() {
             flexDirection: "row",
             alignItems: "center",
             gap: 12,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
+            ...softShadow,
             elevation: 2,
           }}
         >
@@ -500,3 +487,81 @@ export default function EmergencyScreen() {
     </SafeAreaView>
   );
 }
+
+const softShadow = {
+  boxShadow: "0 2px 10px rgba(15, 23, 42, 0.08)",
+} as const;
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    gap: 10,
+  },
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surface,
+  },
+  headerTitleWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minWidth: 0,
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: Colors.danger,
+  },
+  panicRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  panicButton: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: Colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 6px 18px rgba(220, 38, 38, 0.28)",
+    elevation: 8,
+    borderWidth: 4,
+    borderColor: Colors.danger + "40",
+  },
+  panicButtonText: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: Colors.white,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  panicActions: {
+    flex: 1,
+    gap: 10,
+    minWidth: 0,
+  },
+  panicActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  panicActionText: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.darkMid,
+    fontWeight: "700",
+    lineHeight: 16,
+  },
+});
