@@ -14,6 +14,7 @@ import QRCode from "react-native-qrcode-svg";
 import { Colors } from "../../constants/colors";
 import { ClinicQLogo } from "../../components/ui/ClinicQLogo";
 import { useAppStore } from "../../stores/appStore";
+import { navigateWithBlur } from "../../utils/ui";
 
 function BackIcon({ size = 22 }: { size?: number }) {
   return (
@@ -219,6 +220,7 @@ function CheckInModal({ visible, onClose, clinicName, queueNumber, serviceType, 
 
 function EmptyTicket() {
   const router = useRouter();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 16 }}>
       <Text style={{ fontSize: 64 }}>🎫</Text>
@@ -227,12 +229,12 @@ function EmptyTicket() {
         You haven't joined any queue yet. Find a nearby clinic and join the queue to get your ticket.
       </Text>
       <TouchableOpacity
-        onPress={() => router.push("/queue/checkin")}
+        onPress={() => navigate("/queue/checkin")}
         style={{ backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 32, marginTop: 8 }}
       >
         <Text style={{ color: Colors.white, fontSize: 15, fontWeight: "700" }}>Join a Queue</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push("/nearby")}>
+      <TouchableOpacity onPress={() => navigate("/nearby")}>
         <Text style={{ fontSize: 14, color: Colors.primary, fontWeight: "600" }}>Find nearby clinics</Text>
       </TouchableOpacity>
     </View>

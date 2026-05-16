@@ -8,6 +8,7 @@ import {
   Image,
   StyleSheet,
   useWindowDimensions,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -26,7 +27,7 @@ import {
 } from "../../components/ui/Icons";
 import { useAppStore } from "../../stores/appStore";
 import { CLINIC_IMAGES, CLINICS, type TrafficLevel } from "../../constants/clinics";
-import { getBottomPadding } from "../../utils/ui";
+import { getBottomPadding, navigateWithBlur } from "../../utils/ui";
 
 // ─── Mock Map ────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,12 @@ function MockMap() {
         return (
           <TouchableOpacity
             key={i}
+            onPress={() =>
+              Alert.alert(
+                CLINICS[i]?.name ?? "Clinic marker",
+                `Estimated wait: ${CLINICS[i]?.waitTime ?? `${m.label} min`}`
+              )
+            }
             style={[styles.mapMarker, { left, top, width: MARKER_SIZE, height: MARKER_SIZE, borderRadius: MARKER_SIZE / 2 }]}
             accessibilityRole="button"
             accessibilityLabel={`Clinic marker showing ${m.label} minute wait`}
@@ -275,8 +282,10 @@ function ClinicListItem({
 
 export default function NearbyScreen() {
   const router = useRouter();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   const unreadCount = useAppStore((s) => s.notifications.filter((n) => !n.read).length);
   const [search, setSearch] = useState("");
+  const [suggestedClinicSent, setSuggestedClinicSent] = useState(false);
   const { coords, status, refresh: refreshLocation } = useLocation();
 
   const filteredClinics = search.trim()
@@ -295,7 +304,7 @@ export default function NearbyScreen() {
         <Text style={styles.headerTitle}>Nearby Clinics</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity
-            onPress={() => router.push("/notifications")}
+            onPress={() => navigate("/notifications")}
             style={styles.headerIconBtn}
             accessibilityRole="button"
             accessibilityLabel={
@@ -310,7 +319,7 @@ export default function NearbyScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.push("/search")}
+            onPress={() => navigate("/search")}
             style={styles.headerIconBtn}
             accessibilityRole="button"
             accessibilityLabel="Filter clinics"
@@ -413,7 +422,7 @@ export default function NearbyScreen() {
             <ClinicListItem
               key={clinic.id}
               clinic={clinic}
-              onPress={() => router.push(`/clinic/${clinic.id}` as any)}
+              onPress={() => navigate(`/clinic/${clinic.id}`)}
             />
           ))}
           {filteredClinics.length === 0 && (
@@ -434,10 +443,17 @@ export default function NearbyScreen() {
           </View>
           <TouchableOpacity
             style={styles.suggestBtn}
+            onPress={() => {
+              setSuggestedClinicSent(true);
+              Alert.alert(
+                "Suggest a clinic",
+                "Thanks. We logged your suggestion request for this area."
+              );
+            }}
             accessibilityRole="button"
             accessibilityLabel="Suggest a clinic in your area"
           >
-            <Text style={styles.suggestBtnText}>Suggest a Clinic</Text>
+            <Text style={styles.suggestBtnText}>{suggestedClinicSent ? "Suggested" : "Suggest a Clinic"}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

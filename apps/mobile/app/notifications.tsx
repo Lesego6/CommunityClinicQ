@@ -343,6 +343,12 @@ export default function NotificationsScreen() {
             <Text style={{ fontSize: 12, color: Colors.muted }}>Check your notification settings to make sure you don't miss any important updates.</Text>
           </View>
           <TouchableOpacity
+            onPress={() =>
+              Alert.alert(
+                "Notification settings",
+                "Notification preferences will be configured here once device permissions are connected."
+              )
+            }
             style={{
               backgroundColor: Colors.primary,
               borderRadius: 10,

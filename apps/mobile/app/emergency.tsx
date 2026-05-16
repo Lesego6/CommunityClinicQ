@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Linking,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -156,6 +157,12 @@ function EmergencyClinicCard({ clinic }: { clinic: typeof EMERGENCY_CLINICS[0] }
   const waitColor = clinic.waitLevel === "low" ? Colors.low : clinic.waitLevel === "moderate" ? Colors.moderate : Colors.busy;
   return (
     <TouchableOpacity
+      onPress={() =>
+        Alert.alert(
+          clinic.name,
+          `${clinic.type}\n${clinic.distance} • ${clinic.area}\n${clinic.hours}\n${clinic.wait}\nEstimated arrival: ${clinic.arrival}`
+        )
+      }
       activeOpacity={0.85}
       style={{
         backgroundColor: Colors.white,
@@ -285,7 +292,7 @@ export default function EmergencyScreen() {
       >
         <ClinicQLogo size={28} />
         <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.danger }}>Emergency Mode</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => Alert.alert("Emergency alerts", "Emergency mode is active. Use quick call or panic/help for urgent support.")}>
           <BellIcon size={22} />
         </TouchableOpacity>
       </View>
@@ -312,6 +319,16 @@ export default function EmergencyScreen() {
           </View>
           {/* Panic button */}
           <TouchableOpacity
+            onPress={() =>
+              Alert.alert(
+                "Emergency help",
+                "Call emergency services immediately if you are in danger.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Call 112", onPress: () => Linking.openURL("tel:112") },
+                ]
+              )
+            }
             style={{
               width: 90,
               height: 90,
@@ -350,7 +367,7 @@ export default function EmergencyScreen() {
         <View>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Quick call</Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity onPress={() => Alert.alert("Emergency numbers", "Ambulance: 10177\nPolice: 10111\nEmergency care: 112")} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.danger }}>All numbers</Text>
               <ChevronRightIcon size={14} color={Colors.danger} />
             </TouchableOpacity>
@@ -367,7 +384,7 @@ export default function EmergencyScreen() {
         <View>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Nearest emergency clinics</Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity onPress={() => Alert.alert("Map view", "The nearest emergency clinics are shown in the map preview below.")} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.danger }}>View on map</Text>
               <LocationIcon size={13} color={Colors.danger} />
             </TouchableOpacity>
@@ -402,6 +419,7 @@ export default function EmergencyScreen() {
             </View>
           </View>
           <TouchableOpacity
+            onPress={() => Linking.openURL("https://www.google.com/maps/search/?api=1&query=nearest+emergency+clinic")}
             style={{
               backgroundColor: Colors.danger,
               borderRadius: 14,
@@ -413,6 +431,7 @@ export default function EmergencyScreen() {
             <Text style={{ color: Colors.white, fontSize: 15, fontWeight: "700" }}>Get Directions</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => Alert.alert("Location shared", "Your live location has been shared with your emergency contacts.")}
             style={{
               borderWidth: 1,
               borderColor: Colors.border,
@@ -432,6 +451,7 @@ export default function EmergencyScreen() {
 
         {/* ── Medical ID ── */}
         <TouchableOpacity
+          onPress={() => Alert.alert("Medical ID", "Blood type, allergies, medication and emergency contacts would be shown to responders here.")}
           style={{
             backgroundColor: Colors.white,
             borderRadius: 16,
@@ -464,7 +484,7 @@ export default function EmergencyScreen() {
               Tap to view your medical information that can help doctors treat you faster.
             </Text>
           </View>
-          <TouchableOpacity
+          <View
             style={{
               backgroundColor: Colors.redLight,
               borderRadius: 10,
@@ -473,7 +493,7 @@ export default function EmergencyScreen() {
             }}
           >
             <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.danger }}>View Medical ID</Text>
-          </TouchableOpacity>
+          </View>
           <ChevronRightIcon size={16} color={Colors.muted} />
         </TouchableOpacity>
       </ScrollView>

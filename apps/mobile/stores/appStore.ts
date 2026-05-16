@@ -185,7 +185,7 @@ const INITIAL_EMERGENCY_CONTACTS: EmergencyContact[] = [
 ];
 
 let idCounter = 1000;
-const genId = () => `id-${++idCounter}`;
+const genId = () => `id-${Date.now()}-${++idCounter}`;
 
 export const useAppStore = create<AppState>()(
   persist(

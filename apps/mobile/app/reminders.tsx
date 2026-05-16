@@ -9,6 +9,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Circle } from "react-native-svg";
@@ -204,12 +205,15 @@ function ReminderCard({ item, completed = false, onDotsPress }: { key?: React.Ke
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function RemindersScreen() {
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 420;
   const [activeFilter, setActiveFilter] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDosage, setNewDosage] = useState("");
   const [newFrequency, setNewFrequency] = useState("");
   const [newTime, setNewTime] = useState("");
+  const [alertsEnabled, setAlertsEnabled] = useState(false);
 
   const medicationReminders = useAppStore((s) => s.medicationReminders);
   const toggleReminder = useAppStore((s) => s.toggleReminder);
@@ -236,12 +240,13 @@ export default function RemindersScreen() {
     setNewFrequency("");
     setNewTime("");
     setShowAddModal(false);
+    Alert.alert("Reminder added", `${name} was added to your active reminders.`);
   };
 
   // Build unified reminder list from store
   const allReminders = useMemo(() => {
     const medItems: Reminder[] = medicationReminders.map((r: MedicationReminder) => ({
-      id: r.id,
+      id: `medication-${r.id}`,
       type: "medication" as ReminderType,
       typeLabel: "Medication",
       title: r.name,
@@ -258,7 +263,7 @@ export default function RemindersScreen() {
     const apptItems: Reminder[] = appointments
       .filter((a: Appointment) => a.status === "upcoming")
       .map((a: Appointment) => ({
-        id: a.id,
+        id: `appointment-${a.id}`,
         type: "appointment" as ReminderType,
         typeLabel: "Appointment",
         title: a.clinicName,
@@ -294,7 +299,7 @@ export default function RemindersScreen() {
       [
         {
           text: item.enabled ? "Pause reminder" : "Enable reminder",
-          onPress: () => toggleReminder(item.id),
+          onPress: () => toggleReminder(item.id.replace("medication-", "")),
         },
         {
           text: "Delete reminder",
@@ -302,7 +307,7 @@ export default function RemindersScreen() {
           onPress: () =>
             Alert.alert("Delete reminder?", `Remove "${item.title}"?`, [
               { text: "Cancel", style: "cancel" },
-              { text: "Delete", style: "destructive", onPress: () => deleteReminder(item.id) },
+              { text: "Delete", style: "destructive", onPress: () => deleteReminder(item.id.replace("medication-", "")) },
             ]),
         },
         { text: "Cancel", style: "cancel" },
@@ -331,7 +336,14 @@ export default function RemindersScreen() {
         <ClinicQLogo size={28} />
         <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Reminders</Text>
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              Alert.alert(
+                "Reminder alerts",
+                "Medication and appointment reminder notifications are managed from this screen."
+              )
+            }
+          >
             <BellIcon size={22} hasDot />
           </TouchableOpacity>
           <TouchableOpacity
@@ -421,7 +433,13 @@ export default function RemindersScreen() {
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>
               Active reminders {visibleActive.length > 0 && `(${visibleActive.length})`}
             </Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity
+              onPress={() => {
+                setActiveFilter("all");
+                Alert.alert("All reminders", `${activeReminders.length} active reminder${activeReminders.length === 1 ? "" : "s"} shown.`);
+              }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View all</Text>
               <ChevronRightIcon size={14} color={Colors.primary} />
             </TouchableOpacity>
@@ -443,7 +461,13 @@ export default function RemindersScreen() {
           <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Paused reminders</Text>
-              <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setActiveFilter("all");
+                  Alert.alert("Reminder history", `${pausedReminders.length} paused reminder${pausedReminders.length === 1 ? "" : "s"} shown below.`);
+                }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
                 <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View history</Text>
                 <ChevronRightIcon size={14} color={Colors.primary} />
               </TouchableOpacity>
@@ -462,7 +486,7 @@ export default function RemindersScreen() {
             backgroundColor: Colors.primaryLight,
             borderRadius: 16,
             padding: 16,
-            flexDirection: "row",
+            flexDirection: isNarrow ? "column" : "row",
             alignItems: "center",
             gap: 12,
           }}
@@ -484,14 +508,20 @@ export default function RemindersScreen() {
             <Text style={{ fontSize: 12, color: Colors.muted }}>Enable notifications so we can remind you on time, every time.</Text>
           </View>
           <TouchableOpacity
+            onPress={() => {
+              setAlertsEnabled(true);
+              Alert.alert("Alerts enabled", "We'll remind you about active medications and upcoming appointments.");
+            }}
             style={{
               backgroundColor: Colors.primary,
               borderRadius: 10,
               paddingHorizontal: 14,
               paddingVertical: 10,
+              alignSelf: isNarrow ? "stretch" : "auto",
+              alignItems: "center",
             }}
           >
-            <Text style={{ color: Colors.white, fontSize: 12, fontWeight: "700" }}>Enable Alerts</Text>
+            <Text style={{ color: Colors.white, fontSize: 12, fontWeight: "700" }}>{alertsEnabled ? "Alerts On" : "Enable Alerts"}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -554,7 +584,7 @@ export default function RemindersScreen() {
             />
 
             {/* Dosage + Frequency row */}
-            <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+            <View style={{ flexDirection: isNarrow ? "column" : "row", gap: 10, marginBottom: 12 }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>Dosage</Text>
                 <TextInput
@@ -618,7 +648,7 @@ export default function RemindersScreen() {
             />
 
             {/* Buttons */}
-            <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flexDirection: isNarrow ? "column" : "row", gap: 10 }}>
               <TouchableOpacity
                 onPress={() => setShowAddModal(false)}
                 style={{

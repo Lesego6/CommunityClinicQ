@@ -7,6 +7,7 @@ import {
   Alert,
   StyleSheet,
   FlatList,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -23,6 +24,7 @@ import {
   PeopleIcon,
 } from "../../components/ui/Icons";
 import { useAppStore, type QueueTicket } from "../../stores/appStore";
+import { navigateWithBlur } from "../../utils/ui";
 
 // ─── Queue step mapping ───────────────────────────────────────────────────────
 
@@ -171,6 +173,7 @@ function DetailRow({
 
 function EmptyQueueState() {
   const router = useRouter();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   return (
     <View style={styles.emptyState}>
       <Text style={styles.emptyEmoji}>🎫</Text>
@@ -179,7 +182,7 @@ function EmptyQueueState() {
         You haven't joined any queue yet. Find a nearby clinic and join the queue to skip the wait.
       </Text>
       <TouchableOpacity
-        onPress={() => router.push("/queue/checkin")}
+        onPress={() => navigate("/queue/checkin")}
         style={styles.emptyJoinBtn}
         accessibilityRole="button"
         accessibilityLabel="Join a queue"
@@ -187,7 +190,7 @@ function EmptyQueueState() {
         <Text style={styles.emptyJoinBtnText}>Join a Queue</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => router.push("/nearby")}
+        onPress={() => navigate("/nearby")}
         accessibilityRole="link"
         accessibilityLabel="Find nearby clinics"
       >
@@ -234,6 +237,7 @@ function HistoryItem({ ticket }: { ticket: QueueTicket }) {
 
 export default function QueueScreen() {
   const router = useRouter();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   const activeTicket = useAppStore((s) => s.activeTicket);
   const queueHistory = useAppStore((s) => s.queueHistory);
   const leaveQueue = useAppStore((s) => s.leaveQueue);
@@ -252,12 +256,32 @@ export default function QueueScreen() {
   );
 
   const handleLeaveQueue = () => {
+    if (!hasActiveTicket) {
+      Alert.alert("No active queue", "You are not currently waiting in a queue.");
+      return;
+    }
+    const doLeaveQueue = () => {
+      leaveQueue();
+      if (Platform.OS !== "web") {
+        Alert.alert("Queue left", "Your queue spot has been cancelled.");
+      }
+    };
+    if (Platform.OS === "web") {
+      if (globalThis.confirm("Leave queue? You will lose your spot.")) {
+        doLeaveQueue();
+      }
+      return;
+    }
     Alert.alert(
       "Leave Queue?",
       "Are you sure you want to leave the queue? You will lose your spot.",
       [
         { text: "Stay in queue", style: "cancel" },
-        { text: "Leave queue", style: "destructive", onPress: () => leaveQueue() },
+        {
+          text: "Leave queue",
+          style: "destructive",
+          onPress: doLeaveQueue,
+        },
       ]
     );
   };
@@ -275,7 +299,7 @@ export default function QueueScreen() {
         <ClinicQLogo size={28} />
         <Text style={styles.headerTitle}>My Queue</Text>
         <TouchableOpacity
-          onPress={() => router.push("/notifications")}
+          onPress={() => navigate("/notifications")}
           accessibilityRole="button"
           accessibilityLabel={
             unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
@@ -410,7 +434,7 @@ export default function QueueScreen() {
               {/* Actions */}
               <View style={styles.actionsRow}>
                 <TouchableOpacity
-                  onPress={() => router.push("/queue/ticket")}
+                  onPress={() => navigate("/queue/ticket")}
                   style={styles.viewTicketBtn}
                   accessibilityRole="button"
                   accessibilityLabel="View ticket QR code"
@@ -470,7 +494,7 @@ export default function QueueScreen() {
             <>
               <EmptyQueueState />
               <TouchableOpacity
-                onPress={() => router.push("/queue/checkin")}
+                onPress={() => navigate("/queue/checkin")}
                 style={styles.joinNowBtn}
                 accessibilityRole="button"
                 accessibilityLabel="Join a queue now"

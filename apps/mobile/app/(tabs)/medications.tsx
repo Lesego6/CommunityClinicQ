@@ -7,6 +7,7 @@ import {
   TextInput,
   Image,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -28,6 +29,7 @@ import {
   MEDICATION_NEARBY_RESULTS,
   type MedicationClinicResult,
 } from "../../constants/clinics";
+import { navigateWithBlur } from "../../utils/ui";
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 
@@ -102,11 +104,12 @@ function StockBadge({ status }: { status: MedicationClinicResult["status"] }) {
 
 function ClinicMedResult({ item }: { item: MedicationClinicResult }) {
   const router = useRouter();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       style={styles.resultCard}
-      onPress={() => router.push(`/clinic/${item.clinicId}` as any)}
+      onPress={() => navigate(`/clinic/${item.clinicId}`)}
       accessibilityRole="button"
       accessibilityLabel={`${item.clinicName}, ${item.medName} ${item.status === "in-stock" ? "in stock" : item.status === "low-stock" ? "low stock" : "out of stock"}`}
     >
@@ -151,8 +154,10 @@ function ClinicMedResult({ item }: { item: MedicationClinicResult }) {
 
 export default function MedicationsScreen() {
   const router = useRouter();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   const unreadCount = useAppStore((s) => s.notifications.filter((n) => !n.read).length);
   const [activeCategory, setActiveCategory] = useState("all");
+  const [sortMode, setSortMode] = useState<"nearest" | "stock">("nearest");
   const [recentSearches, setRecentSearches] = useState([
     "Paracetamol",
     "Amoxicillin",
@@ -163,6 +168,13 @@ export default function MedicationsScreen() {
   const removeSearch = (label: string) => {
     setRecentSearches((prev) => prev.filter((s) => s !== label));
   };
+  const sortedResults = [...MEDICATION_NEARBY_RESULTS].sort((a, b) => {
+    if (sortMode === "stock") {
+      const rank = { "in-stock": 0, "low-stock": 1, "out-of-stock": 2 };
+      return rank[a.status] - rank[b.status];
+    }
+    return Number.parseFloat(a.distance) - Number.parseFloat(b.distance);
+  });
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
@@ -171,7 +183,7 @@ export default function MedicationsScreen() {
         <ClinicQLogo size={28} />
         <Text style={styles.headerTitle}>Medications</Text>
         <TouchableOpacity
-          onPress={() => router.push("/notifications")}
+          onPress={() => navigate("/notifications")}
           accessibilityRole="button"
           accessibilityLabel={
             unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
@@ -215,7 +227,7 @@ export default function MedicationsScreen() {
             />
           </View>
           <TouchableOpacity
-            onPress={() => router.push("/medications/search")}
+            onPress={() => navigate("/medications/search")}
             style={styles.filterBtn}
             accessibilityRole="button"
             accessibilityLabel="Filter medications"
@@ -265,10 +277,13 @@ export default function MedicationsScreen() {
             <Text style={styles.resultsTitle}>Nearby results</Text>
             <TouchableOpacity
               style={styles.sortBtn}
+              onPress={() => setSortMode((mode) => (mode === "nearest" ? "stock" : "nearest"))}
               accessibilityRole="button"
               accessibilityLabel="Sort results"
             >
-              <Text style={styles.sortText}>Sorted by: Nearest</Text>
+              <Text style={styles.sortText}>
+                Sorted by: {sortMode === "nearest" ? "Nearest" : "Stock"}
+              </Text>
               <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
                 <Path
                   d="M6 9L12 15L18 9"
@@ -280,7 +295,7 @@ export default function MedicationsScreen() {
             </TouchableOpacity>
           </View>
 
-          {MEDICATION_NEARBY_RESULTS.map((item, i) => (
+          {sortedResults.map((item, i) => (
             <ClinicMedResult key={i} item={item} />
           ))}
         </View>
@@ -298,6 +313,12 @@ export default function MedicationsScreen() {
           </View>
           <TouchableOpacity
             style={styles.alertBannerBtn}
+            onPress={() =>
+              Alert.alert(
+                "Stock alerts enabled",
+                "We'll notify you when matching medicines are available nearby."
+              )
+            }
             accessibilityRole="button"
             accessibilityLabel="Enable stock alerts for this medication"
           >

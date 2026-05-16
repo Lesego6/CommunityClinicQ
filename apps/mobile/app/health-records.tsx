@@ -4,6 +4,10 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  Modal,
+  Share,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -126,8 +130,21 @@ const TABS = ["Overview", "Vaccinations", "Prescriptions", "Visit History", "Not
 
 export default function HealthRecordsScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 430;
   const [activeTab, setActiveTab] = useState("Overview");
+  const [showHealthId, setShowHealthId] = useState(false);
   const user = useAppStore((s) => s.user);
+  const shouldShow = (tab: string) => activeTab === "Overview" || activeTab === tab;
+  const healthId = "960725 1234 08 7";
+  const shareRecords = async () => {
+    const message = `ClinicQ Health Records\nPatient: ${user.name}\nHealth ID: ${healthId}\nBlood Type: ${user.bloodType ?? "Unknown"}`;
+    try {
+      await Share.share({ title: "ClinicQ Health Records", message });
+    } catch {
+      Alert.alert("Share records", message);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -146,7 +163,14 @@ export default function HealthRecordsScreen() {
       >
         <ClinicQLogo size={28} />
         <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Health Records</Text>
-        <TouchableOpacity>
+        <TouchableOpacity
+          onPress={() =>
+            Alert.alert(
+              "Record privacy",
+              "Your health record is protected and only shared when you choose to share it."
+            )
+          }
+        >
           <ShieldIcon size={22} color={Colors.dark} />
         </TouchableOpacity>
       </View>
@@ -160,7 +184,7 @@ export default function HealthRecordsScreen() {
             marginTop: 16,
             borderRadius: 20,
             padding: 16,
-            flexDirection: "row",
+            flexDirection: isNarrow ? "column" : "row",
             alignItems: "center",
             gap: 14,
             shadowColor: "#000",
@@ -184,7 +208,7 @@ export default function HealthRecordsScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 16, fontWeight: "800", color: Colors.dark }}>{user.name}</Text>
-            <Text style={{ fontSize: 12, color: Colors.muted }}>ID: 960725 1234 08 7</Text>
+            <Text style={{ fontSize: 12, color: Colors.muted }}>ID: {healthId}</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.danger }} />
               <Text style={{ fontSize: 12, color: Colors.danger, fontWeight: "600" }}>
@@ -193,6 +217,7 @@ export default function HealthRecordsScreen() {
             </View>
           </View>
           <TouchableOpacity
+            onPress={() => setShowHealthId(true)}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -201,6 +226,8 @@ export default function HealthRecordsScreen() {
               borderRadius: 10,
               paddingHorizontal: 10,
               paddingVertical: 6,
+              alignSelf: isNarrow ? "stretch" : "auto",
+              justifyContent: "center",
             }}
           >
             <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.primary }}>View Health ID</Text>
@@ -235,10 +262,17 @@ export default function HealthRecordsScreen() {
         </ScrollView>
 
         {/* ── Health Summary ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        {activeTab === "Overview" && <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Health Summary</Text>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert(
+                  "Edit health summary",
+                  "Health-summary editing will be saved here once the clinical record form is connected."
+                )
+              }
+            >
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -254,14 +288,14 @@ export default function HealthRecordsScreen() {
               elevation: 2,
             }}
           >
-            <View style={{ flexDirection: "row", gap: 16 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
               {[
                 { icon: <CalendarIcon size={16} color={Colors.muted} />, label: "Date of Birth", value: "25 Jul 1996" },
                 { icon: <PersonIcon size={16} color={Colors.muted} />, label: "Gender", value: "Female" },
                 { icon: <AlertIcon size={16} color={Colors.warning} />, label: "Allergies", value: "None" },
                 { icon: <HeartIcon size={16} color={Colors.muted} />, label: "Chronic Conditions", value: "Hypertension" },
               ].map((item) => (
-                <View key={item.label} style={{ flex: 1, alignItems: "center" }}>
+                <View key={item.label} style={{ flex: 1, minWidth: isNarrow ? 120 : 0, alignItems: "center" }}>
                   {item.icon}
                   <Text style={{ fontSize: 10, color: Colors.muted, marginTop: 4, textAlign: "center" }}>{item.label}</Text>
                   <Text style={{ fontSize: 12, fontWeight: "700", color: Colors.dark, textAlign: "center", marginTop: 2 }}>{item.value}</Text>
@@ -282,19 +316,24 @@ export default function HealthRecordsScreen() {
             >
               <InfoIcon size={14} color={Colors.blue} />
               <Text style={{ flex: 1, fontSize: 12, color: Colors.blue }}>Keep your health records up to date for better care.</Text>
-              <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert("Update info", "Your clinic can update allergies, chronic conditions, and personal details.")
+                }
+                style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+              >
                 <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.blue }}>Update Info</Text>
                 <ChevronRightIcon size={12} color={Colors.blue} />
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </View>}
 
         {/* ── Vaccination History ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        {shouldShow("Vaccinations") && <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Vaccination History</Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity onPress={() => setActiveTab("Vaccinations")} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View all</Text>
               <ChevronRightIcon size={14} color={Colors.primary} />
             </TouchableOpacity>
@@ -336,13 +375,13 @@ export default function HealthRecordsScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </View>}
 
         {/* ── Recent Prescriptions ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        {shouldShow("Prescriptions") && <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Recent Prescriptions</Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity onPress={() => setActiveTab("Prescriptions")} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View all</Text>
               <ChevronRightIcon size={14} color={Colors.primary} />
             </TouchableOpacity>
@@ -365,6 +404,7 @@ export default function HealthRecordsScreen() {
             ].map((p, i) => (
               <TouchableOpacity
                 key={i}
+                onPress={() => Alert.alert(p.name, `${p.dosage}\n${p.doctor}\n${p.clinic}\n${p.date}`)}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -390,13 +430,13 @@ export default function HealthRecordsScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </View>}
 
         {/* ── Recent Visit History ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        {shouldShow("Visit History") && <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Recent Visit History</Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity onPress={() => setActiveTab("Visit History")} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View all</Text>
               <ChevronRightIcon size={14} color={Colors.primary} />
             </TouchableOpacity>
@@ -420,6 +460,7 @@ export default function HealthRecordsScreen() {
             ].map((v, i) => (
               <TouchableOpacity
                 key={i}
+                onPress={() => Alert.alert(v.clinic, `${v.type}\n${v.doctor}\n${v.date} • ${v.time}`)}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -447,13 +488,13 @@ export default function HealthRecordsScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </View>}
 
         {/* ── Clinic Notes ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        {shouldShow("Notes") && <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Clinic Notes</Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity onPress={() => setActiveTab("Notes")} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View all</Text>
               <ChevronRightIcon size={14} color={Colors.primary} />
             </TouchableOpacity>
@@ -476,6 +517,7 @@ export default function HealthRecordsScreen() {
             ].map((n, i) => (
               <TouchableOpacity
                 key={i}
+                onPress={() => Alert.alert("Clinic note", `${n.note}\n${n.doctor} • ${n.date}`)}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -494,7 +536,7 @@ export default function HealthRecordsScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </View>}
 
         {/* ── Reminder + Share ── */}
         <View
@@ -504,7 +546,7 @@ export default function HealthRecordsScreen() {
             backgroundColor: Colors.primaryLight,
             borderRadius: 16,
             padding: 16,
-            flexDirection: "row",
+            flexDirection: isNarrow ? "column" : "row",
             alignItems: "center",
             gap: 12,
           }}
@@ -526,6 +568,7 @@ export default function HealthRecordsScreen() {
             <Text style={{ fontSize: 12, color: Colors.muted }}>Keep your records updated and share with your doctor for better care.</Text>
           </View>
           <TouchableOpacity
+            onPress={shareRecords}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -534,6 +577,8 @@ export default function HealthRecordsScreen() {
               borderRadius: 10,
               paddingHorizontal: 12,
               paddingVertical: 8,
+              alignSelf: isNarrow ? "stretch" : "auto",
+              justifyContent: "center",
             }}
           >
             <ShareIcon size={14} color={Colors.primary} />
@@ -541,6 +586,30 @@ export default function HealthRecordsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <Modal visible={showHealthId} transparent animationType="fade" onRequestClose={() => setShowHealthId(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", padding: 20, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: "100%", maxWidth: 420, backgroundColor: Colors.white, borderRadius: 18, padding: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: Colors.dark, marginBottom: 12 }}>Health ID</Text>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.dark }}>{user.name}</Text>
+            <Text style={{ fontSize: 13, color: Colors.muted, marginTop: 6 }}>ID: {healthId}</Text>
+            <Text style={{ fontSize: 13, color: Colors.muted, marginTop: 4 }}>Blood Type: {user.bloodType ?? "Unknown"}</Text>
+            <View style={{ flexDirection: isNarrow ? "column" : "row", gap: 10, marginTop: 18 }}>
+              <TouchableOpacity
+                onPress={() => setShowHealthId(false)}
+                style={{ flex: 1, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.muted }}>Close</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={shareRecords}
+                style={{ flex: 1, backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "800", color: Colors.white }}>Share</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

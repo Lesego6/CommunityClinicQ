@@ -499,10 +499,10 @@ export function HelpIcon({
   );
 }
 
-// ─── Logout ──────────────────────────────────────────────────────────────────
+// ─── Document ────────────────────────────────────────────────────────────────
 
-export function LogoutIcon({
-  color = Colors.danger,
+export function DocumentIcon({
+  color = Colors.primary,
   size = 24,
 }: {
   color?: string;
@@ -511,12 +511,13 @@ export function LogoutIcon({
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
+        d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"
         stroke={color}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <Path d="M13 2V9H20" stroke={color} strokeWidth={2} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -542,10 +543,10 @@ export function CameraIcon({
   );
 }
 
-// ─── Document / list ─────────────────────────────────────────────────────────
+// ─── Logout ──────────────────────────────────────────────────────────────────
 
-export function DocumentIcon({
-  color = Colors.primary,
+export function LogoutIcon({
+  color = Colors.danger,
   size = 24,
 }: {
   color?: string;
@@ -553,13 +554,14 @@ export function DocumentIcon({
 }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x={3} y={3} width={18} height={18} rx={3} stroke={color} strokeWidth={2} />
       <Path
-        d="M8 8H16M8 12H16M8 16H12"
+        d="M10 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4M17 17L23 11M23 11L17 5M23 11H8"
         stroke={color}
         strokeWidth={2}
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );
 }
+

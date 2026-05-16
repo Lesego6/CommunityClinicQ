@@ -14,6 +14,7 @@ import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
 import { useAppStore } from "../stores/appStore";
 import { CLINICS } from "../constants/clinics";
+import { navigateWithBlur } from "../utils/ui";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -203,6 +204,7 @@ const TIME_SLOTS = [
 
 export default function AppointmentBookingScreen() {
   const router = useRouter();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   const params = useLocalSearchParams<{ clinicId?: string; clinicName?: string }>();
   const addAppointment = useAppStore((s) => s.addAppointment);
 
@@ -269,7 +271,7 @@ export default function AppointmentBookingScreen() {
       >
         <ClinicQLogo size={28} />
         <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Appointment Booking</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigate("/notifications")}>
           <BellIcon size={22} hasDot />
         </TouchableOpacity>
       </View>
@@ -297,7 +299,7 @@ export default function AppointmentBookingScreen() {
         >
           <LocationIcon size={16} color={Colors.primary} />
           <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: Colors.dark }}>Langa Community Clinic</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigate("/nearby")}>
             <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Change</Text>
           </TouchableOpacity>
         </View>
@@ -317,7 +319,14 @@ export default function AppointmentBookingScreen() {
         >
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Select Service</Text>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert(
+                  "Available services",
+                  SERVICES.map((service) => `${service.label} (${service.duration})`).join("\n")
+                )
+              }
+            >
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>View services</Text>
             </TouchableOpacity>
           </View>
@@ -347,7 +356,10 @@ export default function AppointmentBookingScreen() {
         >
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: Colors.dark }}>Choose Date & Time</Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity
+              onPress={() => Alert.alert("Calendar view", "Use the date row below to choose an appointment day.")}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
               <CalendarIcon size={14} color={Colors.primary} />
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Calendar view</Text>
             </TouchableOpacity>
@@ -428,7 +440,13 @@ export default function AppointmentBookingScreen() {
               <CalendarIcon size={18} color={Colors.primary} />
               <Text style={{ fontSize: 15, fontWeight: "700", color: Colors.dark }}>Your Appointment</Text>
             </View>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedDate(0);
+                setSelectedTime("09:00");
+              }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
               <RefreshIcon size={14} color={Colors.primary} />
               <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Reschedule</Text>
             </TouchableOpacity>
@@ -516,6 +534,12 @@ export default function AppointmentBookingScreen() {
               <Text style={{ fontSize: 12, color: Colors.muted }}>Sync to your calendar</Text>
             </View>
             <TouchableOpacity
+              onPress={() =>
+                Alert.alert(
+                  "Added to calendar",
+                  `${selectedServiceLabel} at ${selectedClinicName} on ${selectedDateLabel.day.replace(/\n/g, " ")}, ${selectedDateLabel.date} 2026 at ${selectedTime}.`
+                )
+              }
               style={{
                 backgroundColor: Colors.primaryLight,
                 borderRadius: 8,

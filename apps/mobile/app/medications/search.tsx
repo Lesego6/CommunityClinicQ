@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -85,9 +86,23 @@ function PillIcon({ size = 14, color = Colors.muted }: { size?: number; color?: 
 
 // ─── Filter Dropdown ──────────────────────────────────────────────────────────
 
-function FilterDropdown({ value }: { value: string }) {
+function FilterDropdown({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const selectNext = () => {
+    const index = options.indexOf(value);
+    onChange(options[(index + 1) % options.length]);
+  };
   return (
     <TouchableOpacity
+      onPress={selectNext}
+      onLongPress={() => Alert.alert("Options", options.join("\n"))}
       style={{
         flex: 1,
         flexDirection: "row",
@@ -219,6 +234,12 @@ function StockBadge({ status }: { status: "in-stock" | "low-stock" | "out-of-sto
 function MedCard({ item }: { item: typeof MEDICATIONS[0] }) {
   return (
     <TouchableOpacity
+      onPress={() =>
+        Alert.alert(
+          item.name,
+          `${item.category}\nGeneric: ${item.generic}\n${item.clinics}\nFrom ${item.price}`
+        )
+      }
       activeOpacity={0.85}
       style={{
         backgroundColor: Colors.white,
@@ -285,18 +306,55 @@ export default function MedicationsSearchScreen() {
   const [showFilters, setShowFilters] = useState(true);
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [activeLanguage, setActiveLanguage] = useState("All Languages");
+  const [sortBy, setSortBy] = useState("Availability");
+  const [availability, setAvailability] = useState("In stock only");
+  const [locationRange, setLocationRange] = useState("My location (10 km)");
+  const [medType, setMedType] = useState("All types");
+  const [form, setForm] = useState("All forms");
+  const [prescription, setPrescription] = useState("Any");
+  const [pharmaClass, setPharmaClass] = useState("All classes");
+  const [priceRange, setPriceRange] = useState("Any price");
+  const [brandType, setBrandType] = useState("Any");
 
   // Filter the static medication list by search query
   const filteredMedications = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return MEDICATIONS;
-    return MEDICATIONS.filter(
+    let results = MEDICATIONS;
+    if (q) {
+      results = results.filter(
       (m) =>
         m.name.toLowerCase().includes(q) ||
         m.category.toLowerCase().includes(q) ||
         m.generic.toLowerCase().includes(q)
-    );
-  }, [search]);
+      );
+    }
+    if (availability === "In stock only") {
+      results = results.filter((m) => m.status === "in-stock");
+    }
+    if (activeCondition !== "All Conditions") {
+      results = results.filter((m) => m.category.toLowerCase().includes(activeCondition.toLowerCase()));
+    }
+    if (sortBy === "Price low-high") {
+      results = [...results].sort((a, b) => Number.parseFloat(a.price.replace("R", "")) - Number.parseFloat(b.price.replace("R", "")));
+    } else if (sortBy === "Rating") {
+      results = [...results].sort((a, b) => b.rating - a.rating);
+    }
+    return results;
+  }, [search, availability, activeCondition, sortBy]);
+  const resetFilters = () => {
+    setSearch("");
+    setActiveCondition("All Conditions");
+    setActiveLanguage("All Languages");
+    setSortBy("Availability");
+    setAvailability("In stock only");
+    setLocationRange("My location (10 km)");
+    setMedType("All types");
+    setForm("All forms");
+    setPrescription("Any");
+    setPharmaClass("All classes");
+    setPriceRange("Any price");
+    setBrandType("Any");
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -315,7 +373,7 @@ export default function MedicationsSearchScreen() {
       >
         <ClinicQLogo size={28} />
         <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Search Medications</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={resetFilters}>
           <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Reset all</Text>
         </TouchableOpacity>
       </View>
@@ -391,11 +449,12 @@ export default function MedicationsSearchScreen() {
               <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Sort by</Text>
-                  <FilterDropdown value="Availability" />
+                  <FilterDropdown value={sortBy} options={["Availability", "Price low-high", "Rating"]} onChange={setSortBy} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Availability</Text>
                   <TouchableOpacity
+                    onPress={() => setAvailability((current) => current === "In stock only" ? "Any availability" : "In stock only")}
                     style={{
                       flex: 1,
                       flexDirection: "row",
@@ -410,13 +469,13 @@ export default function MedicationsSearchScreen() {
                     }}
                   >
                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success }} />
-                    <Text style={{ fontSize: 12, color: Colors.dark, flex: 1 }}>In stock only</Text>
+                    <Text style={{ fontSize: 12, color: Colors.dark, flex: 1 }}>{availability}</Text>
                     <ChevronDownIcon size={12} color={Colors.muted} />
                   </TouchableOpacity>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Location</Text>
-                  <FilterDropdown value="My location (10 km)" />
+                  <FilterDropdown value={locationRange} options={["My location (5 km)", "My location (10 km)", "My location (20 km)"]} onChange={setLocationRange} />
                 </View>
               </View>
 
@@ -424,15 +483,15 @@ export default function MedicationsSearchScreen() {
               <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Medication type</Text>
-                  <FilterDropdown value="All types" />
+                  <FilterDropdown value={medType} options={["All types", "Pain relief", "Antibiotics", "Chronic care"]} onChange={setMedType} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Form</Text>
-                  <FilterDropdown value="All forms" />
+                  <FilterDropdown value={form} options={["All forms", "Tablet", "Capsule", "Syrup", "Injection"]} onChange={setForm} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Prescription</Text>
-                  <FilterDropdown value="Any" />
+                  <FilterDropdown value={prescription} options={["Any", "Prescription required", "No prescription"]} onChange={setPrescription} />
                 </View>
               </View>
 
@@ -443,7 +502,7 @@ export default function MedicationsSearchScreen() {
                   {["All Conditions", "Pain", "Diabetes", "Hypertension", "Infection"].map((c) => (
                     <Chip key={c} label={c} active={activeCondition === c} onPress={() => setActiveCondition(c)} />
                   ))}
-                  <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
+                  <TouchableOpacity onPress={() => Alert.alert("More conditions", "Additional condition filters will be available here.")} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
                     <Text style={{ fontSize: 12, color: Colors.dark }}>More</Text>
                     <ChevronDownIcon size={12} color={Colors.muted} />
                   </TouchableOpacity>
@@ -453,18 +512,18 @@ export default function MedicationsSearchScreen() {
               {/* Pharmaceutical class */}
               <View style={{ marginBottom: 14 }}>
                 <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Pharmaceutical class</Text>
-                <FilterDropdown value="All classes" />
+                <FilterDropdown value={pharmaClass} options={["All classes", "Analgesic", "Antibiotic", "Antihypertensive", "Diabetes"]} onChange={setPharmaClass} />
               </View>
 
               {/* Row 3 */}
               <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Price range</Text>
-                  <FilterDropdown value="Any price" />
+                  <FilterDropdown value={priceRange} options={["Any price", "Under R5", "Under R10", "Free at clinic"]} onChange={setPriceRange} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.muted, marginBottom: 5 }}>Generic / Brand</Text>
-                  <FilterDropdown value="Any" />
+                  <FilterDropdown value={brandType} options={["Any", "Generic", "Brand"]} onChange={setBrandType} />
                 </View>
               </View>
 
@@ -475,7 +534,7 @@ export default function MedicationsSearchScreen() {
                   {["All Languages", "isiZulu", "isiXhosa", "Afrikaans", "English"].map((l) => (
                     <Chip key={l} label={l} active={activeLanguage === l} onPress={() => setActiveLanguage(l)} />
                   ))}
-                  <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
+                  <TouchableOpacity onPress={() => Alert.alert("More languages", "Additional language filters will be available here.")} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
                     <Text style={{ fontSize: 12, color: Colors.dark }}>More</Text>
                     <ChevronDownIcon size={12} color={Colors.muted} />
                   </TouchableOpacity>
@@ -487,6 +546,12 @@ export default function MedicationsSearchScreen() {
 
         {/* ── Apply Filters ── */}
         <TouchableOpacity
+          onPress={() =>
+            Alert.alert(
+              "Filters applied",
+              `${filteredMedications.length} medication${filteredMedications.length !== 1 ? "s" : ""} match your filters.`
+            )
+          }
           style={{
             backgroundColor: Colors.primary,
             marginHorizontal: 20,

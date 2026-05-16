@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -13,6 +14,7 @@ import Svg, { Path, Circle, Rect } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
 import { CLINICS, CLINIC_IMAGES } from "../constants/clinics";
+import { navigateWithBlur } from "../utils/ui";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -95,9 +97,25 @@ function PeopleIcon({ color = Colors.busy, size = 14 }: { color?: string; size?:
 
 // ─── Filter Dropdown ──────────────────────────────────────────────────────────
 
-function FilterDropdown({ label, value }: { label: string; value: string }) {
+function FilterDropdown({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const selectNext = () => {
+    const index = options.indexOf(value);
+    onChange(options[(index + 1) % options.length]);
+  };
   return (
     <TouchableOpacity
+      onPress={selectNext}
+      onLongPress={() => Alert.alert(label, options.join("\n"))}
       style={{
         flex: 1,
         flexDirection: "row",
@@ -255,7 +273,13 @@ function ResultCard({ item, onPress }: { item: typeof CLINICS[0]; onPress: () =>
             <Text style={{ fontSize: 11, color: Colors.muted }}>• Closes 16:00</Text>
           </View>
         </View>
-        <TouchableOpacity style={{ justifyContent: "flex-start", paddingTop: 4 }}>
+        <TouchableOpacity
+          onPress={(event) => {
+            event.stopPropagation();
+            Alert.alert("Saved", `${item.name} has been saved to favourites.`);
+          }}
+          style={{ justifyContent: "flex-start", paddingTop: 4 }}
+        >
           <BookmarkIcon size={18} color={Colors.muted} />
         </TouchableOpacity>
       </View>
@@ -267,12 +291,18 @@ function ResultCard({ item, onPress }: { item: typeof CLINICS[0]; onPress: () =>
 
 export default function SearchScreen() {
   const router = useRouter();
+  const navigate = (href: string) => navigateWithBlur(router, href);
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(true);
   const [activeService, setActiveService] = useState("All Services");
   const [activeFacility, setActiveFacility] = useState("Pharmacy");
   const [activeLanguage, setActiveLanguage] = useState("All Languages");
   const [activeRating, setActiveRating] = useState("Any rating");
+  const [sortBy, setSortBy] = useState("Nearest");
+  const [distance, setDistance] = useState("Within 10 km");
+  const [clinicStatus, setClinicStatus] = useState("Open now");
+  const [waitTime, setWaitTime] = useState("Any wait time");
+  const [medication, setMedication] = useState("Any medication");
 
   const filteredClinics = useMemo(() => {
     let results = CLINICS;
@@ -296,8 +326,22 @@ export default function SearchScreen() {
         results = results.filter((c) => c.rating >= minRating);
       }
     }
+    if (waitTime === "Under 30 min") {
+      results = results.filter((c) => Number.parseInt(c.waitTime, 10) < 30);
+    }
+    if (distance !== "Any distance") {
+      const max = distance === "Within 5 km" ? 5 : distance === "Within 10 km" ? 10 : 20;
+      results = results.filter((c) => Number.parseFloat(c.distance) <= max);
+    }
+    if (sortBy === "Shortest wait") {
+      results = [...results].sort((a, b) => Number.parseInt(a.waitTime, 10) - Number.parseInt(b.waitTime, 10));
+    } else if (sortBy === "Highest rated") {
+      results = [...results].sort((a, b) => b.rating - a.rating);
+    } else {
+      results = [...results].sort((a, b) => Number.parseFloat(a.distance) - Number.parseFloat(b.distance));
+    }
     return results;
-  }, [search, activeService, activeRating]);
+  }, [search, activeService, activeRating, waitTime, distance, sortBy]);
 
   const handleReset = () => {
     setSearch("");
@@ -305,6 +349,11 @@ export default function SearchScreen() {
     setActiveFacility("Pharmacy");
     setActiveLanguage("All Languages");
     setActiveRating("Any rating");
+    setSortBy("Nearest");
+    setDistance("Within 10 km");
+    setClinicStatus("Open now");
+    setWaitTime("Any wait time");
+    setMedication("Any medication");
   };
 
   return (
@@ -397,11 +446,11 @@ export default function SearchScreen() {
               <View style={{ flexDirection: "row", gap: 12, marginBottom: 14 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>Sort by</Text>
-                  <FilterDropdown label="Sort by" value="Nearest" />
+                  <FilterDropdown label="Sort by" value={sortBy} options={["Nearest", "Shortest wait", "Highest rated"]} onChange={setSortBy} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>Distance</Text>
-                  <FilterDropdown label="Distance" value="Within 10 km" />
+                  <FilterDropdown label="Distance" value={distance} options={["Any distance", "Within 5 km", "Within 10 km", "Within 20 km"]} onChange={setDistance} />
                 </View>
               </View>
 
@@ -410,6 +459,7 @@ export default function SearchScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>Clinic status</Text>
                   <TouchableOpacity
+                    onPress={() => setClinicStatus((current) => (current === "Open now" ? "All clinics" : "Open now"))}
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
@@ -425,14 +475,14 @@ export default function SearchScreen() {
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success }} />
-                      <Text style={{ fontSize: 13, color: Colors.dark }}>Open now</Text>
+                      <Text style={{ fontSize: 13, color: Colors.dark }}>{clinicStatus}</Text>
                     </View>
                     <ChevronDownIcon size={14} color={Colors.muted} />
                   </TouchableOpacity>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>Wait time</Text>
-                  <FilterDropdown label="Wait time" value="Any wait time" />
+                  <FilterDropdown label="Wait time" value={waitTime} options={["Any wait time", "Under 30 min"]} onChange={setWaitTime} />
                 </View>
               </View>
 
@@ -443,7 +493,7 @@ export default function SearchScreen() {
                   {["All Services", "General Services", "Chronic Care", "Maternal Care"].map((s) => (
                     <Chip key={s} label={s} active={activeService === s} onPress={() => setActiveService(s)} />
                   ))}
-                  <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
+                  <TouchableOpacity onPress={() => Alert.alert("More services", "Additional service filters will be available here.")} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
                     <Text style={{ fontSize: 13, color: Colors.dark }}>More</Text>
                     <ChevronDownIcon size={12} color={Colors.muted} />
                   </TouchableOpacity>
@@ -463,7 +513,7 @@ export default function SearchScreen() {
               {/* Medication availability */}
               <View style={{ marginBottom: 14 }}>
                 <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>Medication availability</Text>
-                <FilterDropdown label="Medication" value="Any medication" />
+                <FilterDropdown label="Medication" value={medication} options={["Any medication", "Paracetamol", "Amoxicillin", "Insulin"]} onChange={setMedication} />
               </View>
 
               {/* Languages */}
@@ -473,7 +523,7 @@ export default function SearchScreen() {
                   {["All Languages", "isiZulu", "isiXhosa", "Afrikaans", "English"].map((l) => (
                     <Chip key={l} label={l} active={activeLanguage === l} onPress={() => setActiveLanguage(l)} />
                   ))}
-                  <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
+                  <TouchableOpacity onPress={() => Alert.alert("More languages", "Additional language filters will be available here.")} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
                     <Text style={{ fontSize: 13, color: Colors.dark }}>More</Text>
                     <ChevronDownIcon size={12} color={Colors.muted} />
                   </TouchableOpacity>
@@ -485,6 +535,7 @@ export default function SearchScreen() {
                 <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 8 }}>Location</Text>
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <TouchableOpacity
+                    onPress={() => Alert.alert("Current location", "Using your current location to prioritize nearby clinics.")}
                     style={{
                       flex: 1,
                       flexDirection: "row",
@@ -500,6 +551,7 @@ export default function SearchScreen() {
                     <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Use my current location</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
+                    onPress={() => Alert.alert("Select on map", "Map-based clinic selection will open here once maps are connected.")}
                     style={{
                       flex: 1,
                       flexDirection: "row",
@@ -533,6 +585,7 @@ export default function SearchScreen() {
 
         {/* ── Apply Filters Button ── */}
         <TouchableOpacity
+          onPress={() => Alert.alert("Filters applied", `${filteredClinics.length} clinic${filteredClinics.length !== 1 ? "s" : ""} match your filters.`)}
           style={{
             backgroundColor: Colors.primary,
             marginHorizontal: 20,
@@ -553,8 +606,8 @@ export default function SearchScreen() {
             <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.dark }}>
               {filteredClinics.length} clinic{filteredClinics.length !== 1 ? "s" : ""} found
             </Text>
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text style={{ fontSize: 13, color: Colors.muted }}>Sort by: Nearest</Text>
+            <TouchableOpacity onPress={() => setSortBy((current) => current === "Nearest" ? "Shortest wait" : current === "Shortest wait" ? "Highest rated" : "Nearest")} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Text style={{ fontSize: 13, color: Colors.muted }}>Sort by: {sortBy}</Text>
               <ChevronDownIcon size={14} color={Colors.muted} />
             </TouchableOpacity>
           </View>
@@ -570,7 +623,7 @@ export default function SearchScreen() {
               <ResultCard
                 key={item.id}
                 item={item}
-                onPress={() => router.push(`/clinic/${item.id}` as any)}
+                onPress={() => navigate(`/clinic/${item.id}`)}
               />
             ))
           )}

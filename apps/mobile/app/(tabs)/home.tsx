@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Platform,
   Image,
   ImageBackground,
   StatusBar,
@@ -27,7 +28,7 @@ import {
 } from "../../components/ui/Icons";
 import { useAppStore } from "../../stores/appStore";
 import { CLINIC_IMAGES, CLINICS, type TrafficLevel } from "../../constants/clinics";
-import { getBottomPadding, getGreeting } from "../../utils/ui";
+import { getBottomPadding, getGreeting, navigateWithBlur } from "../../utils/ui";
 
 // ─── Language helpers ────────────────────────────────────────────────────────
 
@@ -116,6 +117,48 @@ function QuickAction({
 
 // ─── Clinic Card ─────────────────────────────────────────────────────────────
 
+function ClickableClinicCard({
+  onPress,
+  accessibilityLabel,
+  children,
+}: {
+  onPress?: () => void;
+  accessibilityLabel: string;
+  children: React.ReactNode;
+}) {
+  if (Platform.OS === "web") {
+    return (
+      <View
+        {...({
+          onClick: onPress,
+          onKeyDown: (event: any) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onPress?.();
+            }
+          },
+        } as any)}
+        style={styles.clinicCard}
+        accessibilityLabel={accessibilityLabel}
+      >
+        {children}
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={styles.clinicCard}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
+      {children}
+    </TouchableOpacity>
+  );
+}
+
 function ClinicCard({
   name,
   area,
@@ -136,14 +179,12 @@ function ClinicCard({
   onPress?: () => void;
 }) {
   const [saved, setSaved] = React.useState(false);
+  const accessibilityLabel = `${name}, ${area}, ${distance} away, estimated wait ${waitTime}`;
 
   return (
-    <TouchableOpacity
+    <ClickableClinicCard
       onPress={onPress}
-      activeOpacity={0.85}
-      style={styles.clinicCard}
-      accessibilityRole="button"
-      accessibilityLabel={`${name}, ${area}, ${distance} away, estimated wait ${waitTime}`}
+      accessibilityLabel={accessibilityLabel}
     >
       <View style={styles.clinicCardInner}>
         <Image
@@ -156,7 +197,10 @@ function ClinicCard({
             <Text style={styles.clinicName}>{name}</Text>
             <TouchableOpacity
               style={styles.heartBtn}
-              onPress={() => setSaved((v) => !v)}
+              onPress={(event) => {
+                event.stopPropagation();
+                setSaved((v) => !v);
+              }}
               accessibilityRole="button"
               accessibilityLabel={saved ? `Remove ${name} from favourites` : `Save ${name} to favourites`}
               accessibilityState={{ selected: saved }}
@@ -179,7 +223,7 @@ function ClinicCard({
           <ChevronRightIcon color={Colors.muted} size={16} />
         </View>
       </View>
-    </TouchableOpacity>
+    </ClickableClinicCard>
   );
 }
 
@@ -209,6 +253,10 @@ export default function HomeScreen() {
     );
   };
 
+  const navigate = (href: string) => {
+    navigateWithBlur(router, href);
+  };
+
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" />
@@ -229,7 +277,7 @@ export default function HomeScreen() {
               <View style={styles.topBarRight}>
                 {/* Bell */}
                 <TouchableOpacity
-                  onPress={() => router.push("/notifications")}
+                  onPress={() => navigate("/notifications")}
                   accessibilityRole="button"
                   accessibilityLabel={
                     unreadCount > 0
@@ -275,7 +323,7 @@ export default function HomeScreen() {
         {/* ── Search Bar ── */}
         <View style={styles.searchRow}>
           <TouchableOpacity
-            onPress={() => router.push("/search")}
+            onPress={() => navigate("/search")}
             style={styles.searchInput}
             accessibilityRole="search"
             accessibilityLabel="Search clinics and areas"
@@ -284,7 +332,7 @@ export default function HomeScreen() {
             <Text style={styles.searchPlaceholder}>Search clinics, areas...</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.push("/search")}
+            onPress={() => navigate("/search")}
             accessibilityRole="button"
             accessibilityLabel="Filter clinics"
             style={styles.filterBtn}
@@ -299,7 +347,7 @@ export default function HomeScreen() {
             bgColor={Colors.primary}
             label="Nearby Clinics"
             accessibilityLabel="Find nearby clinics"
-            onPress={() => router.push("/nearby")}
+            onPress={() => navigate("/nearby")}
             icon={
               <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
                 <Path
@@ -314,7 +362,7 @@ export default function HomeScreen() {
             bgColor={Colors.secondary}
             label="My Queue"
             accessibilityLabel="View my queue"
-            onPress={() => router.push("/queue")}
+            onPress={() => navigate("/queue")}
             icon={
               <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
                 <Circle cx={9} cy={7} r={3} fill="white" />
@@ -338,7 +386,7 @@ export default function HomeScreen() {
             bgColor={Colors.teal}
             label="Medications"
             accessibilityLabel="Check medication availability"
-            onPress={() => router.push("/medications")}
+            onPress={() => navigate("/medications")}
             icon={
               <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
                 <Rect x={3} y={8} width={18} height={13} rx={2} fill="white" />
@@ -351,7 +399,7 @@ export default function HomeScreen() {
             bgColor={Colors.yellow}
             label="Reminders"
             accessibilityLabel="View medication reminders"
-            onPress={() => router.push("/reminders")}
+            onPress={() => navigate("/reminders")}
             icon={
               <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
                 <Path d="M12 22C13.1046 22 14 21.1046 14 20H10C10 21.1046 10.8954 22 12 22Z" fill="white" />
@@ -366,7 +414,7 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Nearby Clinics</Text>
             <TouchableOpacity
-              onPress={() => router.push("/nearby")}
+              onPress={() => navigate("/nearby")}
               style={styles.viewAllBtn}
               accessibilityRole="link"
               accessibilityLabel="View all nearby clinics"
@@ -386,7 +434,7 @@ export default function HomeScreen() {
               trafficLevel={clinic.trafficLevel}
               trafficLabel={clinic.trafficLabel}
               imageIndex={clinic.imageIndex}
-              onPress={() => router.push(`/clinic/${clinic.id}` as any)}
+              onPress={() => navigate(`/clinic/${clinic.id}`)}
             />
           ))}
         </View>
@@ -400,7 +448,7 @@ export default function HomeScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push("/nearby")}
+            onPress={() => navigate("/nearby")}
             style={styles.communityBtn}
             accessibilityRole="button"
             accessibilityLabel="See how to join a queue remotely"
@@ -440,10 +488,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: "0 1px 4px rgba(0,0,0,0.10)" as any,
     elevation: 2,
   },
   langBtn: {
@@ -454,10 +499,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: "0 1px 4px rgba(0,0,0,0.10)" as any,
     elevation: 2,
   },
   langCode: { fontSize: 13, fontWeight: "600", color: Colors.dark },
@@ -487,10 +529,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 13,
     gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)" as any,
     elevation: 2,
   },
   searchPlaceholder: { fontSize: 15, color: Colors.muted },
@@ -501,10 +540,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: "0 4px 8px rgba(27,107,58,0.30)" as any,
     elevation: 4,
   },
 
@@ -516,10 +552,7 @@ const styles = StyleSheet.create({
     padding: 20,
     flexDirection: "row",
     justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)" as any,
     elevation: 2,
     marginBottom: 24,
   },
@@ -531,9 +564,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 6,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: "0 4px 8px rgba(0,0,0,0.18)" as any,
     elevation: 4,
   },
   quickActionLabel: {
@@ -561,10 +592,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 12,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)" as any,
     elevation: 2,
   },
   clinicCardInner: { flexDirection: "row", padding: 12, gap: 12 },

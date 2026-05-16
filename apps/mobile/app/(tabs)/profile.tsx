@@ -7,9 +7,14 @@ import {
   Image,
   StyleSheet,
   Alert,
+  Modal,
+  TextInput,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import Svg, { Path, Circle } from "react-native-svg";
 import { Colors } from "../../constants/colors";
 import { ClinicQLogo } from "../../components/ui/ClinicQLogo";
@@ -32,7 +37,7 @@ import {
 } from "../../components/ui/Icons";
 import { useAppStore } from "../../stores/appStore";
 import { useAuthStore } from "../../stores/authStore";
-import { getGreeting } from "../../utils/ui";
+import { getGreeting, navigateWithBlur } from "../../utils/ui";
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
@@ -98,6 +103,7 @@ function ReminderRow({
   subtitle,
   badge,
   badgeColor,
+  onPress,
 }: {
   icon: React.ReactNode;
   iconBg: string;
@@ -105,10 +111,12 @@ function ReminderRow({
   subtitle: string;
   badge: string;
   badgeColor: string;
+  onPress?: () => void;
 }) {
   return (
     <TouchableOpacity
       style={styles.reminderRow}
+      onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${title}: ${subtitle}, status: ${badge}`}
     >
@@ -159,12 +167,23 @@ function QuickActionBtn({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 420;
+  const navigate = (href: string) => navigateWithBlur(router, href);
   const user = useAppStore((s) => s.user);
   const unreadCount = useAppStore((s) => s.notifications.filter((n) => !n.read).length);
   const appointments = useAppStore((s) => s.appointments);
   const medicationReminders = useAppStore((s) => s.medicationReminders);
   const updateUser = useAppStore((s) => s.updateUser);
   const logout = useAuthStore((s) => s.logout);
+  const [showEditProfile, setShowEditProfile] = React.useState(false);
+  const [draftUser, setDraftUser] = React.useState({
+    name: user.name,
+    phone: user.phone,
+    email: user.email ?? "",
+    location: user.location,
+    language: user.language,
+  });
 
   const firstName = user.name.split(" ")[0];
   const greeting = getGreeting();
@@ -172,6 +191,16 @@ export default function ProfileScreen() {
   const activeReminders = medicationReminders.filter((r) => r.enabled);
 
   const handleLogout = () => {
+    const doLogout = () => {
+      logout();
+      router.replace("/auth/phone");
+    };
+    if (Platform.OS === "web") {
+      if (globalThis.confirm("Are you sure you want to log out?")) {
+        doLogout();
+      }
+      return;
+    }
     Alert.alert(
       "Log out",
       "Are you sure you want to log out?",
@@ -180,10 +209,7 @@ export default function ProfileScreen() {
         {
           text: "Log out",
           style: "destructive",
-          onPress: () => {
-            logout();
-            router.replace("/auth/phone");
-          },
+          onPress: doLogout,
         },
       ]
     );
@@ -192,6 +218,44 @@ export default function ProfileScreen() {
   const iconBox = (bg: string, icon: React.ReactNode) => (
     <View style={[styles.quickActionIconBox, { backgroundColor: bg }]}>{icon}</View>
   );
+  const openEditProfile = () => {
+    setDraftUser({
+      name: user.name,
+      phone: user.phone,
+      email: user.email ?? "",
+      location: user.location,
+      language: user.language,
+    });
+    setShowEditProfile(true);
+  };
+  const saveProfile = () => {
+    updateUser({
+      name: draftUser.name.trim() || user.name,
+      phone: draftUser.phone.trim() || user.phone,
+      email: draftUser.email.trim(),
+      location: draftUser.location.trim() || user.location,
+      language: draftUser.language.trim() || user.language,
+    });
+    setShowEditProfile(false);
+  };
+  const changeProfilePhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", "Please allow photo access to change your profile picture.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+
+    if (!result.canceled && result.assets[0]?.uri) {
+      updateUser({ avatar: result.assets[0].uri });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
@@ -200,7 +264,7 @@ export default function ProfileScreen() {
         <ClinicQLogo size={28} />
         <View style={styles.headerRight}>
           <TouchableOpacity
-            onPress={() => router.push("/notifications")}
+            onPress={() => navigate("/notifications")}
             accessibilityRole="button"
             accessibilityLabel={
               unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"
@@ -214,6 +278,7 @@ export default function ProfileScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => navigate("/notifications")}
             accessibilityRole="button"
             accessibilityLabel="Settings"
           >
@@ -238,6 +303,7 @@ export default function ProfileScreen() {
               />
               <TouchableOpacity
                 style={styles.avatarEditBtn}
+                onPress={changeProfilePhoto}
                 accessibilityRole="button"
                 accessibilityLabel="Change profile photo"
               >
@@ -257,7 +323,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Stats */}
-          <View style={styles.statsRow}>
+          <View style={[styles.statsRow, isNarrow && styles.statsRowNarrow]}>
             <StatCard
               icon={<PersonIcon size={20} color={Colors.primary} />}
               value={user.memberSince}
@@ -301,6 +367,7 @@ export default function ProfileScreen() {
             <Text style={styles.cardTitle}>My Information</Text>
             <TouchableOpacity
               style={styles.editBtn}
+              onPress={openEditProfile}
               accessibilityRole="button"
               accessibilityLabel="Edit personal information"
             >
@@ -343,7 +410,7 @@ export default function ProfileScreen() {
             <Text style={styles.cardTitle}>My Reminders</Text>
             <TouchableOpacity
               style={styles.editBtn}
-              onPress={() => router.push("/reminders")}
+              onPress={() => navigate("/reminders")}
               accessibilityRole="link"
               accessibilityLabel="View all reminders"
             >
@@ -359,6 +426,7 @@ export default function ProfileScreen() {
               subtitle={upcomingAppt.clinicName}
               badge="Upcoming"
               badgeColor={Colors.primary}
+              onPress={() => navigate("/appointment-booking")}
             />
           )}
           {activeReminders.slice(0, 1).map((r) => (
@@ -370,6 +438,7 @@ export default function ProfileScreen() {
                 subtitle={r.name}
                 badge="Active"
                 badgeColor={Colors.secondary}
+                onPress={() => navigate("/reminders")}
               />
             </View>
           ))}
@@ -383,13 +452,13 @@ export default function ProfileScreen() {
         {/* ── Quick Actions ── */}
         <View style={styles.quickActionsSection}>
           <Text style={styles.quickActionsTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsRow}>
+          <View style={[styles.quickActionsRow, isNarrow && styles.quickActionsRowNarrow]}>
             <QuickActionBtn
               bg={Colors.primaryLight}
               color={Colors.primary}
               label={"Notification\nSettings"}
               accessibilityLabel="Notification settings"
-              onPress={() => router.push("/notifications")}
+              onPress={() => navigate("/notifications")}
               icon={iconBox(
                 Colors.primary,
                 <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
@@ -403,6 +472,7 @@ export default function ProfileScreen() {
               color={Colors.warning}
               label={"Privacy &\nSecurity"}
               accessibilityLabel="Privacy and security settings"
+              onPress={() => navigate("/health-records")}
               icon={iconBox(Colors.yellow, <ShieldIcon color={Colors.white} size={18} />)}
             />
             <QuickActionBtn
@@ -410,6 +480,7 @@ export default function ProfileScreen() {
               color={Colors.blue}
               label={"Help &\nSupport"}
               accessibilityLabel="Help and support"
+              onPress={() => navigate("/emergency")}
               icon={iconBox(Colors.blue, <HelpIcon color={Colors.white} size={18} />)}
             />
             <QuickActionBtn
@@ -423,6 +494,39 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
+      <Modal visible={showEditProfile} transparent animationType="fade" onRequestClose={() => setShowEditProfile(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.editModal}>
+            <Text style={styles.editModalTitle}>Edit information</Text>
+            {[
+              ["Full name", "name"],
+              ["Phone number", "phone"],
+              ["Email", "email"],
+              ["Location", "location"],
+              ["Language", "language"],
+            ].map(([label, key]) => (
+              <View key={key} style={styles.editField}>
+                <Text style={styles.editFieldLabel}>{label}</Text>
+                <TextInput
+                  value={draftUser[key as keyof typeof draftUser]}
+                  onChangeText={(value) => setDraftUser((current) => ({ ...current, [key]: value }))}
+                  style={styles.editInput}
+                  placeholder={label}
+                  placeholderTextColor={Colors.muted}
+                />
+              </View>
+            ))}
+            <View style={styles.editModalActions}>
+              <TouchableOpacity style={styles.editCancelBtn} onPress={() => setShowEditProfile(false)}>
+                <Text style={styles.editCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.editSaveBtn} onPress={saveProfile}>
+                <Text style={styles.editSaveText}>Save changes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -453,7 +557,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 20,
   },
-  profileHeroRow: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 16 },
+  profileHeroRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 16 },
   avatar: {
     width: 80,
     height: 80,
@@ -488,7 +592,8 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
   },
-  statCard: { flex: 1, alignItems: "center", gap: 4 },
+  statsRowNarrow: { flexWrap: "wrap" },
+  statCard: { flex: 1, minWidth: 86, alignItems: "center", gap: 4 },
   statValue: { fontSize: 18, fontWeight: "800" },
   statLabel: { fontSize: 10, color: Colors.muted, textAlign: "center" },
   statDivider: { width: 1, backgroundColor: Colors.border },
@@ -527,7 +632,7 @@ const styles = StyleSheet.create({
   },
   infoRowIcon: { width: 24 },
   infoRowLabel: { fontSize: 11, color: Colors.muted },
-  infoRowValue: { fontSize: 14, fontWeight: "500", color: Colors.dark },
+  infoRowValue: { fontSize: 14, fontWeight: "500", color: Colors.dark, flexShrink: 1 },
 
   // Reminder row
   reminderRow: {
@@ -555,8 +660,10 @@ const styles = StyleSheet.create({
   quickActionsSection: { marginTop: 12, marginHorizontal: 20 },
   quickActionsTitle: { fontSize: 16, fontWeight: "700", color: Colors.dark, marginBottom: 12 },
   quickActionsRow: { flexDirection: "row", gap: 10 },
+  quickActionsRowNarrow: { flexWrap: "wrap" },
   quickActionBtn: {
     flex: 1,
+    minWidth: 132,
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
@@ -570,4 +677,48 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   quickActionLabel: { fontSize: 11, fontWeight: "600", textAlign: "center" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  editModal: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    padding: 20,
+  },
+  editModalTitle: { fontSize: 18, fontWeight: "800", color: Colors.dark, marginBottom: 14 },
+  editField: { marginBottom: 10 },
+  editFieldLabel: { fontSize: 12, fontWeight: "700", color: Colors.muted, marginBottom: 5 },
+  editInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.dark,
+  },
+  editModalActions: { flexDirection: "row", gap: 10, marginTop: 8 },
+  editCancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  editCancelText: { fontSize: 14, fontWeight: "700", color: Colors.muted },
+  editSaveBtn: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  editSaveText: { fontSize: 14, fontWeight: "800", color: Colors.white },
 });

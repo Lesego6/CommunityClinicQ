@@ -17,3 +17,24 @@ export function getGreeting(): string {
   if (hour < 17) return "Good afternoon,";
   return "Good evening,";
 }
+
+/**
+ * React Navigation hides inactive web routes with aria-hidden. Blur the tapped
+ * control first so focus does not remain inside a hidden route after navigation.
+ */
+export function blurActiveElement(): void {
+  if (Platform.OS !== "web") return;
+
+  const activeElement = globalThis.document?.activeElement;
+  if (activeElement && "blur" in activeElement) {
+    (activeElement as HTMLElement).blur();
+  }
+}
+
+export function navigateWithBlur(
+  router: { push: (href: any) => void },
+  href: string
+): void {
+  blurActiveElement();
+  router.push(href as any);
+}

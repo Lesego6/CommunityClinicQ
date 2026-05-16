@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { ClinicQLogo } from "../../components/ui/ClinicQLogo";
 import { useAuthStore } from "../../stores/authStore";
+import { navigateWithBlur } from "../../utils/ui";
 
 const COUNTRY_CODE = "+27";
 
@@ -34,7 +35,7 @@ export default function PhoneScreen() {
     }
     setError("");
     setPhone(`${COUNTRY_CODE}${digits}`);
-    router.push("/auth/otp");
+    navigateWithBlur(router, "/auth/otp");
   };
 
   return (
