@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import Svg, { Path, Circle, Rect, G } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
+import { useAppStore } from "../stores/appStore";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -126,6 +127,7 @@ const TABS = ["Overview", "Vaccinations", "Prescriptions", "Visit History", "Not
 export default function HealthRecordsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("Overview");
+  const user = useAppStore((s) => s.user);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -181,11 +183,13 @@ export default function HealthRecordsScreen() {
             <Text style={{ fontSize: 28 }}>👤</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: "800", color: Colors.dark }}>Thando Mthembu</Text>
+            <Text style={{ fontSize: 16, fontWeight: "800", color: Colors.dark }}>{user.name}</Text>
             <Text style={{ fontSize: 12, color: Colors.muted }}>ID: 960725 1234 08 7</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.danger }} />
-              <Text style={{ fontSize: 12, color: Colors.danger, fontWeight: "600" }}>Blood Type: O+</Text>
+              <Text style={{ fontSize: 12, color: Colors.danger, fontWeight: "600" }}>
+                Blood Type: {user.bloodType ?? "Unknown"}
+              </Text>
             </View>
           </View>
           <TouchableOpacity

@@ -3,7 +3,6 @@
     "name": "ClinicQ",
     "slug": "communityClinicQ",
     "version": "1.0.0",
-    "sdkVersion": "55.0.0",
     "orientation": "portrait",
     "icon": "./assets/icons/icon.png",
     "userInterfaceStyle": "light",
@@ -40,7 +39,7 @@
     ],
     "scheme": "clinicq",
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes" : true
     }
   }
 }

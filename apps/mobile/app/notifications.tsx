@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -124,7 +125,19 @@ export default function NotificationsScreen() {
   const notifications = useAppStore((s) => s.notifications);
   const markAsRead = useAppStore((s) => s.markAsRead);
   const markAllRead = useAppStore((s) => s.markAllRead);
+  const clearAll = useAppStore((s) => s.clearAll);
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const handleClearAll = () => {
+    Alert.alert(
+      "Clear all notifications?",
+      "This will permanently remove all notifications.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Clear all", style: "destructive", onPress: clearAll },
+      ]
+    );
+  };
 
   // Filter by tab
   const typeFilter = TAB_TYPE_MAP[activeFilter];
@@ -164,11 +177,18 @@ export default function NotificationsScreen() {
             <Text style={{ fontSize: 11, color: Colors.muted }}>{unreadCount} unread</Text>
           )}
         </View>
-        <TouchableOpacity onPress={markAllRead} accessibilityLabel="Mark all notifications as read">
-          <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>
-            {unreadCount > 0 ? "Mark all read" : "All read"}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+          <TouchableOpacity onPress={markAllRead} accessibilityLabel="Mark all notifications as read">
+            <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>
+              {unreadCount > 0 ? "Mark all" : "All read"}
+            </Text>
+          </TouchableOpacity>
+          {notifications.length > 0 && (
+            <TouchableOpacity onPress={handleClearAll} accessibilityLabel="Clear all notifications">
+              <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.danger }}>Clear</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Filter tabs */}

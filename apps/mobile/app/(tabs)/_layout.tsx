@@ -209,9 +209,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <ProfileIcon color={color} size={22} />,
         }}
       />
-      {/* Hidden tabs — accessible via navigation but not shown in tab bar */}
-      <Tabs.Screen name="alerts" options={{ href: null }} />
-      <Tabs.Screen name="appointments" options={{ href: null }} />
     </Tabs>
   );
 }

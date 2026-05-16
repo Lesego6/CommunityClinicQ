@@ -372,6 +372,33 @@ export default function NearbyScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Location denied / error banner */}
+        {(status === "denied" || status === "error") && (
+          <View style={styles.locationErrorBanner}>
+            <Text style={styles.locationErrorEmoji}>
+              {status === "denied" ? "📍" : "⚠️"}
+            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.locationErrorTitle}>
+                {status === "denied" ? "Location access denied" : "Couldn't get your location"}
+              </Text>
+              <Text style={styles.locationErrorBody}>
+                {status === "denied"
+                  ? "Enable location in your device settings to see clinics near you."
+                  : "Check your connection and try again."}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={refreshLocation}
+              style={styles.locationErrorBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Retry getting location"
+            >
+              <Text style={styles.locationErrorBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Map */}
         <View style={styles.mapWrapper}>
           <MockMap />
@@ -620,6 +647,31 @@ const styles = StyleSheet.create({
   ratingRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   ratingText: { fontSize: 12, fontWeight: "600", color: Colors.dark },
   clinicChevron: { justifyContent: "center" },
+
+  // Location error banner
+  locationErrorBanner: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    backgroundColor: "#FFF3E0",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#FFCC80",
+  },
+  locationErrorEmoji: { fontSize: 20 },
+  locationErrorTitle: { fontSize: 13, fontWeight: "700" as const, color: "#E65100" },
+  locationErrorBody: { fontSize: 12, color: "#BF360C", marginTop: 2 },
+  locationErrorBtn: {
+    backgroundColor: "#E65100",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  locationErrorBtnText: { fontSize: 12, fontWeight: "700" as const, color: "#FFFFFF" },
 
   // Suggest banner
   suggestBanner: {

@@ -5,13 +5,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import Svg, { Path, Circle, Rect } from "react-native-svg";
+import Svg, { Path, Circle } from "react-native-svg";
 import { Colors } from "../constants/colors";
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
 import { useAppStore } from "../stores/appStore";
+import type { MedicationReminder, Appointment } from "../stores/appStore";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -100,78 +104,9 @@ interface Reminder {
   enabled?: boolean;
 }
 
-const UPCOMING_REMINDERS: Reminder[] = [
-  {
-    id: "1",
-    type: "medication",
-    typeLabel: "Medication",
-    title: "Paracetamol 500mg",
-    subtitle: "1 tablet • After breakfast",
-    time: "Today • 08:00 AM",
-    badge: "Due in 18 min",
-    badgeColor: Colors.secondary,
-    badgeBg: Colors.secondaryLight,
-    icon: "💊",
-    iconBg: Colors.secondaryLight,
-  },
-  {
-    id: "2",
-    type: "appointment",
-    typeLabel: "Appointment",
-    title: "Langa Community Clinic",
-    subtitle: "General check-up",
-    time: "Tomorrow • 10:00 AM",
-    badge: "Tomorrow",
-    badgeColor: Colors.primary,
-    badgeBg: Colors.primaryLight,
-    icon: "📅",
-    iconBg: Colors.primaryLight,
-  },
-  {
-    id: "3",
-    type: "medication",
-    typeLabel: "Medication",
-    title: "Amoxicillin 250mg",
-    subtitle: "1 capsule • After lunch",
-    time: "Tomorrow • 01:00 PM",
-    badge: "In 4 hr",
-    badgeColor: Colors.teal,
-    badgeBg: Colors.tealLight,
-    icon: "💊",
-    iconBg: Colors.tealLight,
-  },
-  {
-    id: "4",
-    type: "health",
-    typeLabel: "Health Task",
-    title: "Blood pressure check",
-    subtitle: "Track your blood pressure",
-    time: "Sat, 18 May • 09:00 AM",
-    badge: "In 2 days",
-    badgeColor: Colors.purple,
-    badgeBg: Colors.purpleLight,
-    icon: "💗",
-    iconBg: Colors.purpleLight,
-  },
-];
 
-const COMPLETED_REMINDERS: Reminder[] = [
-  {
-    id: "5",
-    type: "medication",
-    typeLabel: "Medication",
-    title: "Vitamin C 500mg",
-    subtitle: "1 tablet • After breakfast",
-    time: "Today • 07:00 AM",
-    badge: "Taken",
-    badgeColor: Colors.muted,
-    badgeBg: Colors.surface,
-    icon: "💊",
-    iconBg: Colors.surface,
-  },
-];
 
-function ReminderCard({ item, completed = false, onDotsPress }: { item: Reminder; completed?: boolean; onDotsPress?: () => void }) {
+function ReminderCard({ item, completed = false, onDotsPress }: { key?: React.Key; item: Reminder; completed?: boolean; onDotsPress?: () => void }) {
   return (
     <View
       style={{
@@ -269,17 +204,43 @@ function ReminderCard({ item, completed = false, onDotsPress }: { item: Reminder
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function RemindersScreen() {
-  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("all");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDosage, setNewDosage] = useState("");
+  const [newFrequency, setNewFrequency] = useState("");
+  const [newTime, setNewTime] = useState("");
 
   const medicationReminders = useAppStore((s) => s.medicationReminders);
   const toggleReminder = useAppStore((s) => s.toggleReminder);
   const deleteReminder = useAppStore((s) => s.deleteReminder);
+  const addReminder = useAppStore((s) => s.addReminder);
   const appointments = useAppStore((s) => s.appointments);
+
+  const handleAddReminder = () => {
+    const name = newName.trim();
+    if (!name) {
+      Alert.alert("Name required", "Please enter a medication name.");
+      return;
+    }
+    addReminder({
+      name,
+      dosage: newDosage.trim() || "1 tablet",
+      frequency: newFrequency.trim() || "Once daily",
+      time: newTime.trim() || "08:00 AM",
+      enabled: true,
+      nextDue: `Today • ${newTime.trim() || "08:00 AM"}`,
+    });
+    setNewName("");
+    setNewDosage("");
+    setNewFrequency("");
+    setNewTime("");
+    setShowAddModal(false);
+  };
 
   // Build unified reminder list from store
   const allReminders = useMemo(() => {
-    const medItems: Reminder[] = medicationReminders.map((r) => ({
+    const medItems: Reminder[] = medicationReminders.map((r: MedicationReminder) => ({
       id: r.id,
       type: "medication" as ReminderType,
       typeLabel: "Medication",
@@ -295,8 +256,8 @@ export default function RemindersScreen() {
     }));
 
     const apptItems: Reminder[] = appointments
-      .filter((a) => a.status === "upcoming")
-      .map((a) => ({
+      .filter((a: Appointment) => a.status === "upcoming")
+      .map((a: Appointment) => ({
         id: a.id,
         type: "appointment" as ReminderType,
         typeLabel: "Appointment",
@@ -314,8 +275,8 @@ export default function RemindersScreen() {
     return [...medItems, ...apptItems];
   }, [medicationReminders, appointments]);
 
-  const activeReminders = allReminders.filter((r) => r.enabled !== false);
-  const pausedReminders = allReminders.filter((r) => r.enabled === false);
+  const activeReminders = allReminders.filter((r: Reminder) => r.enabled !== false);
+  const pausedReminders = allReminders.filter((r: Reminder) => r.enabled === false);
 
   const filterReminders = (items: Reminder[]) => {
     if (activeFilter === "all") return items;
@@ -374,6 +335,7 @@ export default function RemindersScreen() {
             <BellIcon size={22} hasDot />
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => setShowAddModal(true)}
             style={{
               width: 36,
               height: 36,
@@ -533,6 +495,160 @@ export default function RemindersScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* ── Add Reminder Modal ── */}
+      <Modal
+        visible={showAddModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }}
+          activeOpacity={1}
+          onPress={() => setShowAddModal(false)}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}
+        >
+          <View
+            style={{
+              backgroundColor: Colors.white,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+              paddingBottom: 36,
+            }}
+          >
+            {/* Handle */}
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center", marginBottom: 20 }} />
+
+            <Text style={{ fontSize: 18, fontWeight: "800", color: Colors.dark, marginBottom: 4 }}>
+              Add medication reminder 💊
+            </Text>
+            <Text style={{ fontSize: 13, color: Colors.muted, marginBottom: 20 }}>
+              We'll remind you to take your medication on time.
+            </Text>
+
+            {/* Medication name */}
+            <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>
+              Medication name *
+            </Text>
+            <TextInput
+              value={newName}
+              onChangeText={setNewName}
+              placeholder="e.g. Paracetamol 500mg"
+              placeholderTextColor={Colors.muted}
+              style={{
+                backgroundColor: Colors.surface,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                fontSize: 14,
+                color: Colors.dark,
+                borderWidth: 1,
+                borderColor: Colors.border,
+                marginBottom: 12,
+              }}
+            />
+
+            {/* Dosage + Frequency row */}
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>Dosage</Text>
+                <TextInput
+                  value={newDosage}
+                  onChangeText={setNewDosage}
+                  placeholder="e.g. 1 tablet"
+                  placeholderTextColor={Colors.muted}
+                  style={{
+                    backgroundColor: Colors.surface,
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    fontSize: 14,
+                    color: Colors.dark,
+                    borderWidth: 1,
+                    borderColor: Colors.border,
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>Frequency</Text>
+                <TextInput
+                  value={newFrequency}
+                  onChangeText={setNewFrequency}
+                  placeholder="e.g. After breakfast"
+                  placeholderTextColor={Colors.muted}
+                  style={{
+                    backgroundColor: Colors.surface,
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    fontSize: 14,
+                    color: Colors.dark,
+                    borderWidth: 1,
+                    borderColor: Colors.border,
+                  }}
+                />
+              </View>
+            </View>
+
+            {/* Time */}
+            <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.muted, marginBottom: 6 }}>
+              Reminder time
+            </Text>
+            <TextInput
+              value={newTime}
+              onChangeText={setNewTime}
+              placeholder="e.g. 08:00 AM"
+              placeholderTextColor={Colors.muted}
+              style={{
+                backgroundColor: Colors.surface,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                fontSize: 14,
+                color: Colors.dark,
+                borderWidth: 1,
+                borderColor: Colors.border,
+                marginBottom: 20,
+              }}
+            />
+
+            {/* Buttons */}
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(false)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 14,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  backgroundColor: Colors.surface,
+                  borderWidth: 1,
+                  borderColor: Colors.border,
+                }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: "600", color: Colors.muted }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAddReminder}
+                style={{
+                  flex: 2,
+                  paddingVertical: 14,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  backgroundColor: Colors.primary,
+                }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: "700", color: Colors.white }}>Add Reminder</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }

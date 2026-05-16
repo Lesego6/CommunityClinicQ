@@ -1,0 +1,18 @@
+{
+  "name": "community-clinic-q",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "shared/*",
+    "backend"
+  ],
+  "scripts": {
+    "mobile": "npm run start --workspace=apps/mobile",
+    "build": "turbo run build",
+    "dev": "turbo run dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  }
+}

@@ -267,10 +267,45 @@ function ResultCard({ item, onPress }: { item: typeof CLINICS[0]; onPress: () =>
 
 export default function SearchScreen() {
   const router = useRouter();
-  const [showFilters, setShowFilters] = useState(true);  const [activeService, setActiveService] = useState("All Services");
+  const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(true);
+  const [activeService, setActiveService] = useState("All Services");
   const [activeFacility, setActiveFacility] = useState("Pharmacy");
   const [activeLanguage, setActiveLanguage] = useState("All Languages");
   const [activeRating, setActiveRating] = useState("Any rating");
+
+  const filteredClinics = useMemo(() => {
+    let results = CLINICS;
+    const q = search.trim().toLowerCase();
+    if (q) {
+      results = results.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.area.toLowerCase().includes(q) ||
+          c.services.some((s) => s.toLowerCase().includes(q))
+      );
+    }
+    if (activeService !== "All Services") {
+      results = results.filter((c) =>
+        c.services.some((s) => s.toLowerCase().includes(activeService.toLowerCase()))
+      );
+    }
+    if (activeRating !== "Any rating") {
+      const minRating = parseFloat(activeRating);
+      if (!isNaN(minRating)) {
+        results = results.filter((c) => c.rating >= minRating);
+      }
+    }
+    return results;
+  }, [search, activeService, activeRating]);
+
+  const handleReset = () => {
+    setSearch("");
+    setActiveService("All Services");
+    setActiveFacility("Pharmacy");
+    setActiveLanguage("All Languages");
+    setActiveRating("Any rating");
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surface }} edges={["top"]}>
@@ -289,7 +324,7 @@ export default function SearchScreen() {
       >
         <ClinicQLogo size={28} />
         <Text style={{ fontSize: 17, fontWeight: "700", color: Colors.dark }}>Search & Filters</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleReset}>
           <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.primary }}>Reset all</Text>
         </TouchableOpacity>
       </View>
@@ -313,13 +348,19 @@ export default function SearchScreen() {
         >
           <SearchIcon size={18} color={Colors.muted} />
           <TextInput
+            value={search}
+            onChangeText={setSearch}
             placeholder="Search clinics, services, locations..."
             placeholderTextColor={Colors.muted}
             style={{ flex: 1, fontSize: 14, color: Colors.dark }}
+            autoCapitalize="none"
+            returnKeyType="search"
           />
-          <TouchableOpacity>
-            <XIcon size={18} color={Colors.muted} />
-          </TouchableOpacity>
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <XIcon size={18} color={Colors.muted} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── Filters Section ── */}
@@ -501,25 +542,38 @@ export default function SearchScreen() {
             alignItems: "center",
           }}
         >
-          <Text style={{ color: Colors.white, fontSize: 15, fontWeight: "700" }}>Apply Filters (24 results)</Text>
+          <Text style={{ color: Colors.white, fontSize: 15, fontWeight: "700" }}>
+            Apply Filters ({filteredClinics.length} result{filteredClinics.length !== 1 ? "s" : ""})
+          </Text>
         </TouchableOpacity>
 
         {/* ── Results ── */}
         <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.dark }}>24 clinics found</Text>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.dark }}>
+              {filteredClinics.length} clinic{filteredClinics.length !== 1 ? "s" : ""} found
+            </Text>
             <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 13, color: Colors.muted }}>Sort by: Nearest</Text>
               <ChevronDownIcon size={14} color={Colors.muted} />
             </TouchableOpacity>
           </View>
-          {RESULTS.map((item) => (
-            <ResultCard
-              key={item.id}
-              item={item}
-              onPress={() => router.push(`/clinic/${item.id}` as any)}
-            />
-          ))}
+          {filteredClinics.length === 0 ? (
+            <View style={{ alignItems: "center", paddingVertical: 32 }}>
+              <Text style={{ fontSize: 28, marginBottom: 8 }}>🏥</Text>
+              <Text style={{ fontSize: 14, color: Colors.muted, textAlign: "center" }}>
+                No clinics match your search.
+              </Text>
+            </View>
+          ) : (
+            filteredClinics.map((item) => (
+              <ResultCard
+                key={item.id}
+                item={item}
+                onPress={() => router.push(`/clinic/${item.id}` as any)}
+              />
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

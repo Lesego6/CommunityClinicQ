@@ -1,0 +1,10 @@
+{
+  "name": "communityClinicQ-ussd",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {}
+}
