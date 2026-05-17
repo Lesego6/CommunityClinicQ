@@ -10,12 +10,14 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 import { ClinicQLogo } from "../components/ui/ClinicQLogo";
 import { Colors } from "../constants/colors";
+import type { AdminQueuePatient } from "../stores/appStore";
 import { useAppStore } from "../stores/appStore";
 import { useAuthStore } from "../stores/authStore";
 
@@ -454,31 +456,100 @@ function MedicationPanel({ width }: { width: number }) {
 }
 
 function ScannerPanel({ width }: { width: number }) {
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<"idle" | "scanning" | "scanned">("idle");
+  const [scannedPatient, setScannedPatient] = useState<AdminQueuePatient | null>(null);
+  const patients = useAppStore((s) => s.adminQueuePatients);
   const cardWidth = responsiveWidth(width, getColumns(width, 2));
+
+  const showScanResult = (data: string) => {
+    const normalized = data.trim().toUpperCase();
+    const match = patients.find((patient) => {
+      const queueNumber = patient.queueNumber.toUpperCase();
+      const id = patient.id.toUpperCase();
+      return normalized === queueNumber || normalized === id || normalized.includes(queueNumber);
+    });
+
+    setScannedPatient(
+      match ?? {
+        id: normalized || "unknown-ticket",
+        name: "Unknown Patient",
+        queueNumber: normalized || "Unknown QR",
+        service: "General Consultation",
+        wait: "Pending review",
+        status: "checked-in",
+      }
+    );
+    setScanState("scanned");
+  };
 
   const simulateScan = () => {
     setScanState("scanning");
-    setTimeout(() => setScanState("scanned"), 1000);
+    setTimeout(() => showScanResult("A023"), 1000);
   };
+
+  const resetScan = () => {
+    setScanState("idle");
+    setScannedPatient(null);
+  };
+
+  const scannerContent =
+    Platform.OS === "web" ? (
+      <>
+        <Text style={styles.scannerTitle}>{scanState === "scanning" ? "Scanning..." : "Scan Patient QR Code"}</Text>
+        <View style={styles.qrBox}>
+          <Svg width={170} height={170} viewBox="0 0 170 170">
+            <Rect width={170} height={170} rx={8} fill={Colors.white} />
+            {Array.from({ length: 56 }).map((_, index) => (
+              <Rect key={index} x={(index * 23) % 150 + 10} y={(index * 37) % 150 + 10} width={index % 3 === 0 ? 16 : 9} height={index % 4 === 0 ? 16 : 9} fill={Colors.dark} />
+            ))}
+          </Svg>
+        </View>
+        <View style={styles.scanLine} />
+        <TouchableOpacity onPress={simulateScan} style={styles.flashButton}>
+          <Text style={styles.flashButtonText}>{scanState === "scanning" ? "Reading QR..." : "Simulate Scan"}</Text>
+        </TouchableOpacity>
+      </>
+    ) : !permission?.granted ? (
+      <View style={styles.permissionBox}>
+        <Text style={styles.scannerTitleStatic}>Camera permission required</Text>
+        <Text style={styles.permissionText}>Allow camera access to scan patient queue QR codes.</Text>
+        <TouchableOpacity onPress={requestPermission} style={styles.flashButtonStatic}>
+          <Text style={styles.flashButtonText}>Grant Camera Access</Text>
+        </TouchableOpacity>
+      </View>
+    ) : scanState === "scanned" ? (
+      <View style={styles.scanCompleteBox}>
+        <Text style={styles.scanCompleteIcon}>✓</Text>
+        <Text style={styles.scannerTitleStatic}>QR code scanned</Text>
+        <TouchableOpacity onPress={resetScan} style={styles.flashButtonStatic}>
+          <Text style={styles.flashButtonText}>Scan Another</Text>
+        </TouchableOpacity>
+      </View>
+    ) : (
+      <>
+        <CameraView
+          style={StyleSheet.absoluteFill}
+          facing="back"
+          barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+          onBarcodeScanned={({ data }) => showScanResult(data)}
+        />
+        <Text style={styles.scannerTitle}>Point camera at patient QR</Text>
+        <View style={styles.cameraFrame}>
+          <View style={[styles.corner, styles.cornerTopLeft]} />
+          <View style={[styles.corner, styles.cornerTopRight]} />
+          <View style={[styles.corner, styles.cornerBottomLeft]} />
+          <View style={[styles.corner, styles.cornerBottomRight]} />
+        </View>
+        <View style={styles.scanLine} />
+      </>
+    );
 
   return (
     <>
       <View style={styles.wrapGrid}>
         <View style={[styles.scannerCard, { width: cardWidth }]}>
-          <Text style={styles.scannerTitle}>{scanState === "scanning" ? "Scanning..." : "Scan Patient QR Code"}</Text>
-          <View style={styles.qrBox}>
-            <Svg width={170} height={170} viewBox="0 0 170 170">
-              <Rect width={170} height={170} rx={8} fill={Colors.white} />
-              {Array.from({ length: 56 }).map((_, index) => (
-                <Rect key={index} x={(index * 23) % 150 + 10} y={(index * 37) % 150 + 10} width={index % 3 === 0 ? 16 : 9} height={index % 4 === 0 ? 16 : 9} fill={Colors.dark} />
-              ))}
-            </Svg>
-          </View>
-          <View style={styles.scanLine} />
-          <TouchableOpacity onPress={simulateScan} style={styles.flashButton}>
-            <Text style={styles.flashButtonText}>{scanState === "scanning" ? "Reading QR..." : "Simulate Scan"}</Text>
-          </TouchableOpacity>
+          {scannerContent}
         </View>
         <View style={[styles.card, { width: cardWidth }]}>
           <SectionTitle title="How it works" />
@@ -489,8 +560,17 @@ function ScannerPanel({ width }: { width: number }) {
       </View>
       {scanState === "scanned" ? (
         <View style={[styles.card, { width }]}>
-          <SectionTitle title="Last Scanned Patient" action="Checked in at 09:21 AM" />
-          <Row left="Sipho Khumalo" mid="Queue A023 - 5th in queue - 35-45 min" right={<Pill label="Check-in Patient" />} />
+          <SectionTitle title="Last Scanned Patient" action="Ready for check-in" />
+          <Row
+            left={scannedPatient?.name || "Unknown Patient"}
+            mid={`Queue ${scannedPatient?.queueNumber || "--"} - ${scannedPatient?.service || "General Consultation"} - ${scannedPatient?.wait || "Pending review"}`}
+            right={<Pill label="Check-in Patient" />}
+          />
+          {Platform.OS === "web" ? (
+            <TouchableOpacity onPress={resetScan} style={[styles.secondaryButton, styles.scanAgainButton]}>
+              <Text style={styles.secondaryButtonText}>Scan Another</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : null}
     </>
@@ -740,8 +820,21 @@ const styles = StyleSheet.create({
   axisLabel: { color: Colors.muted, fontSize: 12, marginBottom: 8 },
   scannerCard: { minHeight: 360, borderRadius: 16, backgroundColor: Colors.dark, alignItems: "center", justifyContent: "center", overflow: "hidden", padding: 20, marginTop: 12 },
   scannerTitle: { position: "absolute", top: 24, color: Colors.white, fontSize: 16, fontWeight: "900" },
+  scannerTitleStatic: { color: Colors.white, fontSize: 16, fontWeight: "900", textAlign: "center" },
   qrBox: { borderRadius: 12, overflow: "hidden" },
   scanLine: { position: "absolute", left: "18%", right: "18%", top: "50%", height: 3, backgroundColor: Colors.primaryMid },
   flashButton: { position: "absolute", bottom: 22, minHeight: 40, borderRadius: 20, paddingHorizontal: 18, backgroundColor: "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" },
+  flashButtonStatic: { minHeight: 40, borderRadius: 20, paddingHorizontal: 18, backgroundColor: "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" },
   flashButtonText: { color: Colors.white, fontWeight: "900" },
+  permissionBox: { alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 22 },
+  permissionText: { color: "rgba(255,255,255,0.76)", fontSize: 13, lineHeight: 18, textAlign: "center" },
+  cameraFrame: { width: 190, height: 190, borderRadius: 20 },
+  corner: { position: "absolute", width: 42, height: 42, borderColor: Colors.white },
+  cornerTopLeft: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 16 },
+  cornerTopRight: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 16 },
+  cornerBottomLeft: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 16 },
+  cornerBottomRight: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 16 },
+  scanCompleteBox: { alignItems: "center", justifyContent: "center", gap: 14 },
+  scanCompleteIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primary, color: Colors.white, fontSize: 38, lineHeight: 64, fontWeight: "900", textAlign: "center" },
+  scanAgainButton: { alignSelf: "flex-start", marginTop: 14 },
 });
